@@ -31,17 +31,12 @@ The project must follow these points:
 
 6. finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
    The report must be structured in the following chapters:
-   6.a) title
-   6.b) abstracts
-   6.c) introduction
-   6.d) explanation of the algorithm
-   6.e) the experiments and the results through the plots
-   6.f) personal conclusions
-
-
-
-
-
+   - title
+   - abstracts
+   - introduction
+   - explanation of the algorithm
+   - the experiments and the results through the plots
+   - personal conclusions
 
 ### remarks:
 
