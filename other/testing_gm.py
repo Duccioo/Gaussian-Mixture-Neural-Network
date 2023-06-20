@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from sklearn.mixture import GaussianMixture
 
 # Generazione dei dati di una distribuzione esponenziale
-random_state = np.random.seed(33)
+random_state = np.random.seed(42)
 n_samples = 100
 rate = 1  # tasso di decay dell'esponenziale
 X = np.random.exponential(scale=1 / rate, size=n_samples)

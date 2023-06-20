@@ -20,6 +20,15 @@ def plot_AllInOne(
         plt.show()
 
 
+def plot_2pdf(x1, y1, x2, y2):
+    plt.plot(x1, y1, label="pdf 1")
+    plt.plot(x2, y2, label="pdf 2")
+    plt.xlabel("X")
+    plt.ylabel("Probability Density")
+    plt.legend()
+    plt.show()
+
+
 def plot_histo(X):
     plt.hist(
         X,
