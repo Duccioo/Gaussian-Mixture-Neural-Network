@@ -16,7 +16,7 @@ class NeuralNetworkModular(nn.Module):
         num_units=10,
         activation=nn.ReLU(),
         last_activation=False,
-        n_layer=1,
+        n_layer=2,
         type_layer="decrease",
     ):
         super().__init__()
@@ -77,8 +77,6 @@ def NerualNetwork_model(parameters: dict, search: str = None, device: str = "aut
 
 
 if __name__ == "__main__":
-   
-
     num_samples = 1000
     test_size = 0.2
     random_state = 42
@@ -90,12 +88,12 @@ if __name__ == "__main__":
 
     # split the dataset into training and test sets
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=random_state)
-    x_train.reshape(-1, 1)
-    x_test.reshape(-1, 1)
-    y_train.reshape(-1, 1)
-    y_test.reshape(-1, 1)
+    x_train = x_train.reshape(-1, 1)
+    x_test = x_test.reshape(-1, 1)
+    y_train = y_train.reshape(-1, 1)
+    y_test = y_test.reshape(-1, 1)
 
-    # create the model 
+    # create the model
     params = {"criterion": nn.L1Loss}
     model = NerualNetwork_model(
         params,

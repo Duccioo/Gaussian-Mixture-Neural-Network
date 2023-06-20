@@ -4,6 +4,7 @@ import os
 
 
 def generate_training(n_samples=100, rate=1, seed=None):
+    
     if seed is not None:
         random_state = np.random.seed(seed)
 

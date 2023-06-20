@@ -18,12 +18,14 @@ def main():
     x_test, y_test = generate_test(rate=rate, limit_x=10)
 
     # train the model
-    model = GaussianMixtureModel_bias(n_components=4, seed=seed)
+    model = GaussianMixtureModel_bias(n_components=8, seed=seed)
     model.fit(x_training)
+
     pdf_predicted = np.exp(model.score_samples(x_test))
 
     # plot the real pdf and the predicted pdf
-    plot_2pdf(x_test, y_test, x_test, pdf_predicted)
+    # plot_2pdf(x_test, y_test, x_test, pdf_predicted)
+    plot_AllInOne(x_training, x_test, pdf_predicted=pdf_predicted, pdf_true=y_test)
 
     # plot_histo(x_training)
 
