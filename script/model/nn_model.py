@@ -77,24 +77,26 @@ def NerualNetwork_model(parameters: dict, search: str = None, device: str = "aut
 
 
 if __name__ == "__main__":
-    params = {"criterion": nn.L1Loss}
+   
 
     num_samples = 1000
     test_size = 0.2
     random_state = 42
 
-    # Genera dati casuali secondo la distribuzione di probabilità specificata
+    # Generate random number for a random dataset
     np.random.seed(random_state)
     x = np.random.uniform(0, 1, num_samples)
     y = x**2
 
-    # Dividi i dati in training set e test set
+    # split the dataset into training and test sets
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=random_state)
     x_train.reshape(-1, 1)
     x_test.reshape(-1, 1)
     y_train.reshape(-1, 1)
     y_test.reshape(-1, 1)
 
+    # create the model 
+    params = {"criterion": nn.L1Loss}
     model = NerualNetwork_model(
         params,
         lr=0.01,
@@ -105,8 +107,10 @@ if __name__ == "__main__":
         module__num_units=500,
     )
 
+    # train the model
     model.fit(torch.Tensor(x_train), torch.Tensor(y_train))
 
+    # test the model
     out = model.predict(torch.Tensor(x_test))
     print(out[0:5].reshape(-1).round(3))
     print(y_test[0:5].reshape(-1).round(3))
