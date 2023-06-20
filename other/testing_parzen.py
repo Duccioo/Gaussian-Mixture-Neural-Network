@@ -1,76 +1,39 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import norm, uniform, expon
 
-def true_pdf(x, distribution):
-    if distribution == "uniform":
-        return uniform.pdf(x, loc=-2, scale=4)
-    elif distribution == "exponential":
-        return expon.pdf(x, loc=0, scale=1)
-    elif distribution == "gaussian":
-        return norm.pdf(x, loc=0, scale=1)
+# Definisci la funzione di densità di probabilità esponenziale
+def exponential_pdf(x, rate):
+    return np.exp(-rate * x)
 
-def parzen_window(x, X_train, h):
-    n_samples_train = X_train.shape[0]
-    n_features = X_train.shape[1]
-    density = np.zeros_like(x)
+# Definizione della finestra di Parzen con finestra gaussiana
+def parzen_window(x, data, h):
     
-    for i, xi in enumerate(x):
-        for j in range(n_samples_train):
-            diff = xi - X_train[j]
-            density[i] += norm.pdf(diff, loc=0, scale=h)
-            
-        density[i] /= (n_samples_train * h)
+    n = len(data)
+    window = 1 / (np.sqrt(2 * np.pi) * h) * np.exp(-0.5 * ((x - data) / h) ** 2)
+    return np.sum(window) / (n)
     
-    return density
 
-def parzen_neural_network(x, X_train, h, hidden_size):
-    n_samples_train = X_train.shape[0]
-    n_features = X_train.shape[1]
-    density = np.zeros_like(x)
-    weights = np.random.randn(hidden_size, n_features)
-    
-    for i, xi in enumerate(x):
-        for j in range(hidden_size):
-            diff = xi - weights[j]
-            density[i] += norm.pdf(diff, loc=0, scale=h)
-        
-        density[i] /= (hidden_size * h)
-    
-    return density
+# Generazione di dati da una PDF esponenziale
+np.random.seed(42)
+data = np.random.exponential(scale=1.0, size=1000)
 
-# Parametri
-distribution = "uniform"  # Uniforme, esponenziale o gaussiana
-h = 0.3  # Dimensione finestra di Parzen
-hidden_size = 10  # Dimensione strato nascosto (per PNN)
-n_samples_train = 100  # Numero di punti di addestramento
+# Parametri per la finestra di Parzen
+h = 0.2  # Larghezza della finestra
 
-# Generazione dei dati di addestramento
-if distribution == "uniform":
-    X_train = uniform.rvs(loc=-2, scale=4, size=n_samples_train)
-elif distribution == "exponential":
-    X_train = expon.rvs(loc=0, scale=1, size=n_samples_train)
-elif distribution == "gaussian":
-    X_train = norm.rvs(loc=0, scale=1, size=n_samples_train)
+# Generazione di punti su cui stimare la PDF
+x = np.linspace(0, 5, 1000)
 
-# Generazione dei dati di test
-x = np.linspace(-6, 6, 1000)
+# Calcolo della stima della PDF utilizzando la finestra di Parzen
+pdf_estimated = [parzen_window(point, data, h) for point in x]
 
-# Calcolo delle PDF reali
-true_pdf_values = true_pdf(x, distribution)
+# Calcolo della vera PDF esponenziale
+pdf_true = np.exp(-x)
 
-# Calcolo delle PDF approssimate con Parzen Window
-pw_density = parzen_window(x, X_train, h)
-
-# Calcolo delle PDF approssimate con Parzen Neural Network
-pnn_density = parzen_neural_network(x, X_train, h, hidden_size)
-
-# Plot delle PDF reali e approssimate
-plt.plot(x, true_pdf_values, label="PDF reale")
-plt.plot(x, pw_density, label="Parzen Window")
-plt.plot(x, pnn_density, label="Parzen Neural Network")
-plt.title("Stima della PDF con Parzen Window e Parzen Neural Network")
-plt.xlabel("x")
-plt.ylabel("PDF")
+# Plot dei risultati
+plt.plot(x, pdf_estimated, label='Stima Parzen')
+plt.plot(x, pdf_true, label='PDF vera')
+plt.xlabel('x')
+plt.ylabel('PDF')
+plt.title('Stima della PDF utilizzando la finestra di Parzen')
 plt.legend()
 plt.show()
