@@ -16,9 +16,7 @@ def GaussianMixtureModel_bias(n_components=4, seed=None, max_iter=1000):
         n_init=10,
         random_state=random_state,
     )
-
     return model
-
 
 def GaussianMixtureModel_unbias():
     pass

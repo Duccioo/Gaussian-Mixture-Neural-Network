@@ -2,9 +2,28 @@ import torch.nn as nn
 import torch
 from skorch import NeuralNet
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+from sklearn.metrics import r2_score
 
 import numpy as np
 from sklearn.model_selection import train_test_split
+
+torch.manual_seed(42)
+
+
+class AdaptiveSigmoid(nn.Module):
+    def __init__(self, lambda_init=1.0):
+        super(AdaptiveSigmoid, self).__init__()
+
+        self.lambda_param = nn.Parameter(
+            torch.tensor(lambda_init)
+        )  # Definisci il parametro lambda come un parametro di apprendimento
+        # self.linear = nn.Linear(input_dim, 1)  # Layer lineare per la trasformazione lineare dei dati in ingresso
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        # x = self.linear(x)
+        x = self.lambda_param * self.sigmoid(x)  # Applica la funzione di attivazione sigmoide con ampiezza adattiva
+        return x
 
 
 class NeuralNetworkModular(nn.Module):
@@ -32,7 +51,7 @@ class NeuralNetworkModular(nn.Module):
 
             else:
                 self.layers.append(
-                    nn.Linear(int(num_units * (2**i), int(num_units * (2 ** (i + 1))), device=device))
+                    nn.Linear(int(num_units * (2**i)), int(num_units * (2 ** (i + 1))), device=device)
                 )
 
         if type_layer == "decrease":
@@ -41,7 +60,11 @@ class NeuralNetworkModular(nn.Module):
             self.output_layer = nn.Linear(int(num_units * (2 ** (n_layer - 1))), output_features)
 
         self.activation = activation
-        self.last_activation = last_activation
+
+        if last_activation == "lambda":
+            self.last_activation = AdaptiveSigmoid()
+        else:
+            self.last_activation = last_activation
 
     def forward(self, x):
         for layer in self.layers:
@@ -62,16 +85,30 @@ def NerualNetwork_model(parameters: dict, search: str = None, device: str = "aut
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if type(parameters["criterion"]) == list or search == "gridsearch":
-        model = NeuralNet(NeuralNetworkModular)
-        model = GridSearchCV(model, parameters, refit=True, cv=5, verbose=50, n_jobs=n_jobs, **kwargs)
+        model = NeuralNet(NeuralNetworkModular, parameters["criterion"][0], **kwargs, verbose=0)
+        model = GridSearchCV(
+            model,
+            parameters,
+            refit="r2",
+            cv=5,
+            verbose=50,
+            n_jobs=n_jobs,
+            scoring=["r2", "max_error", "explained_variance"],
+        )
 
     elif search == "randomsearch":
-        model = NeuralNet(NeuralNetworkModular)
-        model = RandomizedSearchCV(model, parameters, refit=True, cv=5, verbose=50, n_jobs=n_jobs, **kwargs)
+        model = NeuralNet(NeuralNetworkModular, **kwargs)
+        model = RandomizedSearchCV(
+            model,
+            parameters,
+            refit=True,
+            cv=5,
+            verbose=50,
+            n_jobs=n_jobs,
+        )
 
     else:
-        model = NeuralNet(NeuralNetworkModular, criterion=parameters["criterion"], **kwargs)
-        print(model.criterion)
+        model = NeuralNet(NeuralNetworkModular, criterion=parameters["criterion"], **kwargs, verbose=0)
 
     return model
 
