@@ -84,21 +84,22 @@ def main():
 
     # parameters for the gridsarch of the MLP algorithm
     mlp_params = {
-        "criterion": [nn.MSELoss],
-        "max_epochs": [100],
-        "batch_size": [1, 16],
-        "lr": [0.01],
-        "module__n_layer": [1, 3],
-        "module__last_activation": ["lambda"],
-        "module__num_units": [100],
+        "criterion": [nn.MSELoss, nn.L1Loss],
+        "max_epochs": [100, 10],
+        "batch_size": [1, 16, 8],
+        "lr": [0.01, 0.001],
+        "module__n_layer": [1, 2, 3],
+        "module__last_activation": ["lambda", nn.ReLU()],
+        "module__num_units": [100, 10, 50],
         "module__activation": [
             nn.ReLU(),
+            nn.Tanh(),
         ],
         "module__type_layer": ["increase", "decrease"],
         "optimizer": [
             optim.Adam,
         ],
-        "module__dropout": 0.5,
+        "module__dropout": [0.0, 0.5],
     }
 
     # generate the sample from a exponential distribution:

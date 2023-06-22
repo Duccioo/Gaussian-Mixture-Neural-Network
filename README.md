@@ -72,7 +72,8 @@ The project must follow these points:
    > course!)
 
 ## To do:
-- [ ] do the 4 experiments, changing the number of parameters
+
+- [ ] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
 - [ ] check out the differences between the GMM biased and unbiased
 - [ ] Implement the saving plots for the experiments
 - [ ] check the correctness of the ISE score function
