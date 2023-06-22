@@ -97,7 +97,14 @@ def NerualNetwork_model(
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if type(parameters["criterion"]) == list or search == "gridsearch":
-        model = NeuralNet(NeuralNetworkModular, parameters["criterion"][0], **kwargs, verbose=0, device=device, module__device=device,)
+        model = NeuralNet(
+            NeuralNetworkModular,
+            parameters["criterion"][0],
+            **kwargs,
+            verbose=0,
+            device=device,
+            module__device=device,
+        )
         model = GridSearchCV(
             model,
             parameters,
@@ -106,15 +113,30 @@ def NerualNetwork_model(
             verbose=3,
             n_jobs=n_jobs,
             scoring=["r2", "max_error", "explained_variance", "neg_mean_absolute_percentage_error"],
-            
         )
 
     elif search == "randomsearch":
         model = NeuralNet(NeuralNetworkModular, device=device, **kwargs)
-        model = RandomizedSearchCV(model, parameters, refit=True, cv=5, verbose=50, n_jobs=n_jobs)
+        model = RandomizedSearchCV(
+            model,
+            parameters,
+            refit=True,
+            cv=5,
+            verbose=50,
+            n_jobs=n_jobs,
+            device=device,
+            module__device=device,
+        )
 
     else:
-        model = NeuralNet(NeuralNetworkModular, criterion=parameters["criterion"], **kwargs, verbose=0, device=device)
+        model = NeuralNet(
+            NeuralNetworkModular,
+            criterion=parameters["criterion"],
+            **kwargs,
+            verbose=0,
+            device=device,
+            module__device=device,
+        )
 
     return model
 

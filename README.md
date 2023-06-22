@@ -17,22 +17,23 @@ The project must follow these points:
 - [x] generate the dataset: composed of 100 examples/points taken randomly from an exponential distribution
 
 - [ ] carry out the experiments, producing as a result a graph that compares the true PDF of the exponential distribution and the one approximated by the GMM and the GMM+NN.
-   Each experiment differs according to the number of components per GNN:
-   -  4 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-   - 8 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-   - 16 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-   - 32 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+      Each experiment differs according to the number of components per GNN:
+
+  - 4 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+  - 8 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+  - 16 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+  - 32 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
 
 - [ ] do one last experiment: choose the best model of the GMM+NN and check the differences between the unbiased and biased models. Do the same considerations of the Parzen Neural Network apply in this case too?
 
 - [ ] finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
-   The report must be structured in the following chapters:
-   - title
-   - abstracts
-   - introduction
-   - explanation of the algorithm
-   - the experiments and the results through the plots
-   - personal conclusions
+      The report must be structured in the following chapters:
+  - title
+  - abstracts
+  - introduction
+  - explanation of the algorithm
+  - the experiments and the results through the plots
+  - personal conclusions
 
 </details>
 
@@ -70,7 +71,13 @@ The project must follow these points:
    > estimated pdf and the true pdf (you can do that you feel like it, of
    > course!)
 
-
+## To do:
+- [ ] do the 4 experiments, changing the number of parameters
+- [ ] check out the differences between the GMM biased and unbiased
+- [ ] Implement the saving plots for the experiments
+- [ ] check the correctness of the ISE score function
+- [ ] maybe implement some options to pass with the command line
+- [ ] maybe implement a gridsearch also for the GMM algorithm
 
 ## File Structure:
 
@@ -111,10 +118,11 @@ In order to run all the script you need to run the following:
    ```
 
 ## Run Locally
+
 On the repo folder:
 
 ```bash
-python script/main.py --components <number of gaussian components> 
+python script/main.py --components <number of gaussian components>
 ```
 
 ## Results:
