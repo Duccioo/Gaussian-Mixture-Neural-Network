@@ -86,12 +86,19 @@ def main():
     mlp_params = {
         "criterion": [nn.MSELoss],
         "max_epochs": [100],
-        "batch_size": [16, 32],
+        "batch_size": [1, 16],
         "lr": [0.01],
         "module__n_layer": [1, 3],
         "module__last_activation": ["lambda"],
-        "module__num_units": [100, 50],
-        "module__activation": [nn.ReLU()],
+        "module__num_units": [100],
+        "module__activation": [
+            nn.ReLU(),
+        ],
+        "module__type_layer": ["increase", "decrease"],
+        "optimizer": [
+            optim.Adam,
+        ],
+        "module__dropout": 0.5,
     }
 
     # generate the sample from a exponential distribution:
@@ -128,15 +135,12 @@ def main():
     )
 
     # make the model
-    model_mlp = NerualNetwork_model(
-        parameters=mlp_params,
-        optimizer=optim.Adam,
-        module__dropout=0.5,
-        module__type_layer="increase",
-        search="gridsearch",
-    )
+    model_mlp = NerualNetwork_model(parameters=mlp_params, search="gridsearch", device="cpu", n_jobs=-1)
+
     # train the model and predict the pdf over the test set
     model_mlp.fit(x_training.astype(np.float32), y_mlp.astype(np.float32))
+
+    print(model_mlp.best_params_)
 
     pdf_predicted_mlp = test_and_log(
         model_mlp,

@@ -6,8 +6,8 @@ from sklearn.model_selection import train_test_split
 import numpy as np
 
 
-
 # ---
+
 
 class AdaptiveSigmoid(nn.Module):
     def __init__(self, lambda_init=1.0):
@@ -32,9 +32,9 @@ class NeuralNetworkModular(nn.Module):
         last_activation=False,
         n_layer=2,
         type_layer="decrease",
+        device="cpu",
     ):
         super().__init__()
-        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.dropout = nn.Dropout(dropout)
         self.layers = []
         self.layers.append(nn.Linear(input_features, num_units, device=device))
@@ -50,9 +50,9 @@ class NeuralNetworkModular(nn.Module):
                 )
 
         if type_layer == "decrease":
-            self.output_layer = nn.Linear(int(num_units / (2 ** (n_layer - 1))), output_features)
+            self.output_layer = nn.Linear(int(num_units / (2 ** (n_layer - 1))), output_features, device=device)
         else:
-            self.output_layer = nn.Linear(int(num_units * (2 ** (n_layer - 1))), output_features)
+            self.output_layer = nn.Linear(int(num_units * (2 ** (n_layer - 1))), output_features, device=device)
 
         self.activation = activation
 
@@ -76,7 +76,7 @@ class NeuralNetworkModular(nn.Module):
 
 
 def NerualNetwork_model(
-    parameters: dict, search: str = None, device: str = "auto", n_jobs: int = -1, seed=42, **kwargs
+    parameters: dict, search: str = None, device: str = "auto", n_jobs: int = 4, seed=42, **kwargs
 ):
     """
     Function for create the model of the Network with gridsearch and randomsearch possibilities.
@@ -97,9 +97,7 @@ def NerualNetwork_model(
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if type(parameters["criterion"]) == list or search == "gridsearch":
-        model = NeuralNet(
-            NeuralNetworkModular, parameters["criterion"][0], **kwargs, verbose=0,
-        )
+        model = NeuralNet(NeuralNetworkModular, parameters["criterion"][0], **kwargs, verbose=0, device=device, module__device=device,)
         model = GridSearchCV(
             model,
             parameters,
@@ -108,14 +106,15 @@ def NerualNetwork_model(
             verbose=3,
             n_jobs=n_jobs,
             scoring=["r2", "max_error", "explained_variance", "neg_mean_absolute_percentage_error"],
+            
         )
 
     elif search == "randomsearch":
-        model = NeuralNet(NeuralNetworkModular, **kwargs)
+        model = NeuralNet(NeuralNetworkModular, device=device, **kwargs)
         model = RandomizedSearchCV(model, parameters, refit=True, cv=5, verbose=50, n_jobs=n_jobs)
 
     else:
-        model = NeuralNet(NeuralNetworkModular, criterion=parameters["criterion"], **kwargs, verbose=0)
+        model = NeuralNet(NeuralNetworkModular, criterion=parameters["criterion"], **kwargs, verbose=0, device=device)
 
     return model
 
