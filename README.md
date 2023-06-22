@@ -122,7 +122,7 @@ In order to run all the script you need to run the following:
 On the repo folder:
 
 ```bash
-python script/main.py --components <number of gaussian components>
+python script/main.py
 ```
 
 ## Results:
