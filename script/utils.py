@@ -9,7 +9,7 @@ def write_result(
     experiment_params={"hidden_layers": [64, 32, 16], "activation": "relu"},
     best_params={"hidden_layers": [12, 31, 23], "activation": "relu"},
     r2_score=0.0,
-    
+    rate=1.0,
     mse_score=0.0,
     max_error_score=0.0,
     evs_score=0.0,
@@ -17,47 +17,23 @@ def write_result(
     k1_score=0.0,
     model_type="GNN+MLP",
     log_name_file="experiment_log.csv",
+    base_dir=["..", "result", "CSV"],
 ):
-    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    log_entry = [
-        date,
-        experiment_type,
-        model_type,
-        r2_score,
-        mse_score,
-        max_error_score,
-        evs_score,
-        ise_score,
-        k1_score,
-        experiment_params,
-        best_params,
-    ]
-
-    # check if file exist
-    if not os.path.isfile(os.path.join("result", "CSV", log_name_file)):
-        with open(os.path.join("result", "CSV", log_name_file), "w", newline="") as file:
-            writer = csv.writer(file)
-
-            writer.writerow(
-                [
-                    "DATE",
-                    "Experiment Type",
-                    "Train Type",
-                    "R2 Score",
-                    "MSE",
-                    "Max Error",
-                    "EVS",
-                    "ISE",
-                    "K1 divergence",
-                    "Parameters",
-                    "Best Params",
-                ]
-            )
-
-    with open(os.path.join("result", "CSV", log_name_file), "a", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(log_entry)
+    write_csv(
+        experiment_type=experiment_type,
+        model_type=model_type,
+        rate=rate,
+        r2_score=r2_score,
+        MSE_score=mse_score,
+        max_error_score=max_error_score,
+        EVS_score=evs_score,
+        ISE_score=ise_score,
+        k1_score=k1_score,
+        experiment_params=experiment_params,
+        best_params=best_params,
+        log_name_file=log_name_file,
+        base_dir=base_dir,
+    )
 
 
 def plot_AllInOne(
@@ -110,6 +86,61 @@ def plot_histo(X):
     plt.show()
 
 
+def check_base_dir(*args):
+    # take the full path of the folder
+    absolute_path = os.path.dirname(__file__)
+
+    full_path = absolute_path
+    for idx, path in enumerate(args):
+        # check if arguments are a list
+        if type(path) is list:
+            for micro_path in path:
+                full_path = os.path.join(full_path, micro_path)
+
+        else:
+            full_path = os.path.join(full_path, path)
+
+        # check the path exists
+        if not os.path.exists(full_path):
+            os.makedirs(full_path)
+
+    return full_path
+
+
+def write_csv(
+    log_name_file="test.csv",
+    base_dir="",
+    **kwargs,
+):
+    """
+    generate a .csv file to log information from the experiments
+    """
+
+    # check the path and create the dir
+    base_path = check_base_dir(base_dir)
+    # get the All path to the csv file
+    full_path = os.path.join(base_path, log_name_file)
+
+    # generate timestamp
+    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    log_entry = [date]
+    log_title = ["Date"]
+    for key, element in kwargs.items():
+        log_entry.append(element)
+        log_title.append(key.replace("_", " ").title())
+
+    # check if file exist
+    if not os.path.isfile(full_path):
+        with open(full_path, "w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(log_title)
+
+    with open(full_path, "a", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(log_entry)
+
+
 def subplot():
     pass
 
@@ -119,4 +150,10 @@ def save_plot():
 
 
 if __name__ == "__main__":
-    pass
+    absolute_path = os.path.dirname(__file__)
+    relative_path = "prova"
+    full_path = os.path.join(absolute_path, relative_path)
+    print(absolute_path)
+    print(full_path)
+    # check_base_dir("prova", "dati", ["prova1"])
+    write_result(experiment_type="AAA", experiment_params="No", log_name_file="test.csv")

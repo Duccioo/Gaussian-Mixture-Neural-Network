@@ -1,9 +1,13 @@
 import numpy as np
-from model.gm_model import GaussianMixtureModel_bias
 import os
 
 
-def generate_training(n_samples=100, rate=1, seed=None):
+# ---
+from model.gm_model import GaussianMixtureModel
+from utils import check_base_dir
+
+
+def generate_training(n_samples: int = 100, rate: float = 1.0, seed: (int or None) = None):
     if seed is not None:
         random_state = np.random.seed(seed)
 
@@ -12,14 +16,14 @@ def generate_training(n_samples=100, rate=1, seed=None):
     return X.reshape(-1, 1), y.reshape(-1, 1)
 
 
-def generate_test(limit_x=100, stepper=0.001, rate=1):
-    X = np.arange(0, limit_x, stepper).reshape(-1, 1)
+def generate_test(range_limit: tuple = (0, 100), stepper: float = 0.001, rate: float = 1):
+    X = np.arange(range_limit[0], range_limit[1], stepper).reshape(-1, 1)
     y = rate * np.exp(X * (-rate))
     return X.reshape(-1, 1), y.reshape(-1, 1)
 
 
 def generate_training_MLP_Label(X, n_components=4, seed=None):
-    model = GaussianMixtureModel_bias(n_components=n_components, seed=seed)
+    model = GaussianMixtureModel(n_components=n_components, seed=seed)
     Y = []
     for indx, sample in enumerate(X):
         X_1 = np.delete(X, indx).reshape(-1, 1)
@@ -29,8 +33,11 @@ def generate_training_MLP_Label(X, n_components=4, seed=None):
     return X, Y
 
 
-def load_training_MLP_Label(X, load_file=False, n_components=4, seed=None):
-    if load_file != False and os.path.isfile(load_file):
+def load_training_MLP_Label(X, load_file=False, n_components=4, seed=None, base_dir=["..", "data"]):
+    file_path = check_base_dir(base_dir)
+    file_path = os.path.join(file_path, load_file)
+
+    if load_file != False and os.path.isfile(file_path):
         X, y = load_dataset(load_file)
     else:
         X, y = generate_training_MLP_Label(X, n_components=n_components, seed=seed)
@@ -39,22 +46,43 @@ def load_training_MLP_Label(X, load_file=False, n_components=4, seed=None):
     return X, y
 
 
-def load_training(load_file=False, n_sample=100, rate=1):
-    if load_file != False and os.path.isfile(load_file):
+def load_training(load_file=False, n_samples=100, rate=1, base_dir=["..", "data"], seed=42):
+    file_path = check_base_dir(base_dir)
+    file_path = os.path.join(file_path, load_file)
+
+    if load_file != False and os.path.isfile(file_path):
         X, y = load_dataset(load_file)
     else:
-        X, y = generate_training(n_samples=n_sample, rate=rate)
+        X, y = generate_training(n_samples=n_samples, rate=rate, seed=seed)
         if load_file != False:
             save_dataset([X, y], load_file)
     return X, y
 
 
-def save_dataset(X, filename="dataset_saved.npy"):
-    np.save(filename, X, allow_pickle=True)
+def load_test(load_file=False, range_limit: tuple = (0, 10), stepper=0.001, rate=1.0, base_dir=["..", "data"]):
+    file_path = check_base_dir(base_dir)
+    file_path = os.path.join(file_path, load_file)
+
+    if load_file != False and os.path.isfile(file_path):
+        X, y = load_dataset(load_file)
+    else:
+        X, y = generate_test(rate=rate, range_limit=range_limit, stepper=stepper)
+        if load_file != False:
+            save_dataset([X, y], load_file)
+    return X, y
 
 
-def load_dataset(filename="dataset_saved.npy"):
-    dataset = np.load(filename, allow_pickle=True)
+def save_dataset(X, filename="dataset_saved.npy", base_path=["..", "data"]):
+    full_path = check_base_dir(base_path)
+    full_path = os.path.join(full_path, filename)
+    np.save(full_path, X, allow_pickle=True)
+
+
+def load_dataset(filename="dataset_saved.npy", base_path=["..", "data"]):
+    full_path = check_base_dir(base_path)
+    full_path = os.path.join(full_path, filename)
+
+    dataset = np.load(full_path, allow_pickle=True)
     X = dataset[:][0]
     y = dataset[:][1]
     return X, y

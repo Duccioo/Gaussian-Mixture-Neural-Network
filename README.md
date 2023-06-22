@@ -70,6 +70,8 @@ The project must follow these points:
    > estimated pdf and the true pdf (you can do that you feel like it, of
    > course!)
 
+
+
 ## File Structure:
 
 - ### `data` folder:

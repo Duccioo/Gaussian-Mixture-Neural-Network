@@ -2,27 +2,22 @@ import torch.nn as nn
 import torch
 from skorch import NeuralNet
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
-from sklearn.metrics import r2_score
-
-import numpy as np
 from sklearn.model_selection import train_test_split
+import numpy as np
 
-torch.manual_seed(42)
 
+
+# ---
 
 class AdaptiveSigmoid(nn.Module):
     def __init__(self, lambda_init=1.0):
         super(AdaptiveSigmoid, self).__init__()
 
-        self.lambda_param = nn.Parameter(
-            torch.tensor(lambda_init)
-        )  # Definisci il parametro lambda come un parametro di apprendimento
-        # self.linear = nn.Linear(input_dim, 1)  # Layer lineare per la trasformazione lineare dei dati in ingresso
+        self.lambda_param = nn.Parameter(torch.tensor(lambda_init))
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        # x = self.linear(x)
-        x = self.lambda_param * self.sigmoid(x)  # Applica la funzione di attivazione sigmoide con ampiezza adattiva
+        x = self.lambda_param * self.sigmoid(x)
         return x
 
 
@@ -80,32 +75,44 @@ class NeuralNetworkModular(nn.Module):
         return x
 
 
-def NerualNetwork_model(parameters: dict, search: str = None, device: str = "auto", n_jobs: int = -1, **kwargs):
+def NerualNetwork_model(
+    parameters: dict, search: str = None, device: str = "auto", n_jobs: int = -1, seed=42, **kwargs
+):
+    """
+    Function for create the model of the Network with gridsearch and randomsearch possibilities.
+
+    Args:
+        parameters (dict):
+        search (str, optional): Option:[gridsearch, randomsearch]. Defaults to None.
+        device (str, optional): Option:[auto, cpu, cuda]. Defaults to "auto".
+        n_jobs (int, optional): Description: number of cores to use in the gridsearch and randomsearch. Defaults to -1.
+        seed (int, optional): Description: Seed for the initialization of the parameters
+
+    Returns:
+        a Neural Network model in the type of sklearn model
+    """
+    torch.manual_seed(seed)
+
     if device == "auto":
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if type(parameters["criterion"]) == list or search == "gridsearch":
-        model = NeuralNet(NeuralNetworkModular, parameters["criterion"][0], **kwargs, verbose=0)
+        model = NeuralNet(
+            NeuralNetworkModular, parameters["criterion"][0], **kwargs, verbose=0,
+        )
         model = GridSearchCV(
             model,
             parameters,
             refit="r2",
             cv=5,
-            verbose=50,
+            verbose=3,
             n_jobs=n_jobs,
-            scoring=["r2", "max_error", "explained_variance"],
+            scoring=["r2", "max_error", "explained_variance", "neg_mean_absolute_percentage_error"],
         )
 
     elif search == "randomsearch":
         model = NeuralNet(NeuralNetworkModular, **kwargs)
-        model = RandomizedSearchCV(
-            model,
-            parameters,
-            refit=True,
-            cv=5,
-            verbose=50,
-            n_jobs=n_jobs,
-        )
+        model = RandomizedSearchCV(model, parameters, refit=True, cv=5, verbose=50, n_jobs=n_jobs)
 
     else:
         model = NeuralNet(NeuralNetworkModular, criterion=parameters["criterion"], **kwargs, verbose=0)
