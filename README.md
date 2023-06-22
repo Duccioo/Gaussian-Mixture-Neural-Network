@@ -1,35 +1,31 @@
 # Gaussian Mixture Neural Network
 
-A model that combine Gaussian mixture models with Neural Networks
-
-Group:
-
-1. Aparna Pindali Mana (matricola: 136597 )
-2. Duccio Meconcelli (matricola: 134039 )
+A model that combines Gaussian mixture models with Neural Networks
 
 ## Summary of the Project:
 
-The project consists in studying a new algorithm not covered in class which, along the lines of Parzen Neural Networks, brings together the statistical approach and machine learning approaches.
-
-The new algorithm consists in using the Gaussian Mixture Model (GMM) instead of the Parzen Window to generate the targets for the Neural Network.
+<details>
+  <summary>The project consists in studying a new algorithm not covered in class which, along the lines of Parzen Neural Networks, brings together the statistical approach and machine learning approaches.</summary>
+  
+  The new algorithm consists in using the Gaussian Mixture Model (GMM) instead of the Parzen Window to generate the targets for the Neural Network.
 Then the goal is to estimate the PDF of a certain unlabeled dataset.
 
 The project must follow these points:
 
-1. find a model for the NN (MLP: hard coding or finding a simulator)
-2. find a model for GMM (hard coding or finding a simulator)
-3. generate the dataset: composed of 100 examples/points taken randomly from an exponential distribution
+- [x] find a model for the NN (MLP: hard coding or finding a simulator)
+- [x] find a model for GMM (hard coding or finding a simulator)
+- [x] generate the dataset: composed of 100 examples/points taken randomly from an exponential distribution
 
-4. carry out the experiments, producing as a result a graph that compares the true PDF of the exponential distribution and the one approximated by the GMM and the GMM+NN.
+- [ ] carry out the experiments, producing as a result a graph that compares the true PDF of the exponential distribution and the one approximated by the GMM and the GMM+NN.
    Each experiment differs according to the number of components per GNN:
-   4.a) 4 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-   4.b) 8 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-   4.c) 16 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-   4.d) 32 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+   -  4 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+   - 8 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+   - 16 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+   - 32 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
 
-5. do one last experiment: choose the best model of the GMM+NN and check the differences between the unbiased and biased models. Do the same considerations of the Parzen Neural Network apply in this case too?
+- [ ] do one last experiment: choose the best model of the GMM+NN and check the differences between the unbiased and biased models. Do the same considerations of the Parzen Neural Network apply in this case too?
 
-6. finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
+- [ ] finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
    The report must be structured in the following chapters:
    - title
    - abstracts
@@ -37,6 +33,8 @@ The project must follow these points:
    - explanation of the algorithm
    - the experiments and the results through the plots
    - personal conclusions
+
+</details>
 
 ### remarks:
 
@@ -71,3 +69,59 @@ The project must follow these points:
    > Squared error (ISE) or other simiar measure of distance between he
    > estimated pdf and the true pdf (you can do that you feel like it, of
    > course!)
+
+## File Structure:
+
+- ### `data` folder:
+
+  Contains the save files of the training and test data.
+  This files are automatically generated and saved when run the algorithm.
+
+- ### `script` folder:
+
+  It contains all the code for running the project.
+
+  - #### `model/nn_model.py`: the model for the Neural Network part of the project. Implements the
+  - #### `model/gm_model.py`:
+
+  - #### `data_manager.py`: the data manager for the
+
+  - #### `utils.py`: the utilities for the
+
+  - #### `main.py`: the main function for the project
+
+- ### `other` folder: some random code created at the beginning of the project
+
+## Installation
+
+In order to run all the script you need to run the following:
+
+1. Clone the project:
+
+   ```bash
+   git clone https://github.com/Duccioo/Gaussian-Mixture-Neural-Network.git
+   ```
+
+2. install the dependencies:
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Run Locally
+On the repo folder:
+
+```bash
+python script/main.py --components <number of gaussian components> 
+```
+
+## Results:
+
+## Authors
+
+- [@AparnaPindali](https://github.com/AparnaPindali)
+- [@duccioo](https://github.com/Duccioo)
+
+## License
+
+[MIT](https://choosealicense.com/licenses/mit/)
