@@ -47,6 +47,7 @@ def plot_AllInOne(
     show=True,
     name="figure1",
     pdf_predicted_mlp=None,
+    base_dir=["..", "result", "img"],
 ):
     # Plot delle pdf
     plt.plot(test_sample, pdf_predicted_gmm, label="Predicted PDF (GMM)")
@@ -61,7 +62,9 @@ def plot_AllInOne(
     plt.legend()
 
     if save == True:
-        plt.savefig(name + ".png")
+        img_folder_path = check_base_dir(base_dir)
+        img_folder_name = os.path.join(img_folder_path, name + ".png")
+        plt.savefig(img_folder_name)
 
     if show == True:
         plt.show()

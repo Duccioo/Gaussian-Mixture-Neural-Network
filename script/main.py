@@ -73,12 +73,19 @@ def test_and_log(
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Project for AI Exam")
+    parser.add_argument("--rate", type=int, default=0.6)
+    parser.add_argument("--n_jobs", type=int, default=2)
+    parser.add_argument("--n_samples", type=int, default=100)
+    parser.add_argument("--n_components", type=int, default=4)
+
+    args = parser.parse_args()
     seed = 42
 
     # Parameters:
-    n_components = 8  # number of components for the Gaussian Mixture
-    rate = 0.6  # rate of the exponential distribution PDF
-    n_samples = 100  # number of samples to generate from the exp distribution
+    n_components = args.n_components  # number of components for the Gaussian Mixture
+    rate = args.rate # rate of the exponential distribution PDF
+    n_samples = args.n_samples  # number of samples to generate from the exp distribution
     limit_test = (0, 10)  # range limit for the x-axis of the test set
     stepper_x_test = 0.001  # step to take on the limit_test for generate the test data
 
@@ -101,6 +108,7 @@ def main():
         ],
         "module__dropout": [0.0, 0.5],
     }
+
 
     # generate the sample from a exponential distribution:
     x_training, _ = load_training(f"training_N{n_samples}_R{rate}.npy", n_samples=n_samples, rate=rate, seed=seed)
@@ -136,7 +144,7 @@ def main():
     )
 
     # make the model
-    model_mlp = NerualNetwork_model(parameters=mlp_params, search="gridsearch", device="cpu", n_jobs=-1)
+    model_mlp = NerualNetwork_model(parameters=mlp_params, search="gridsearch", device="cpu", n_jobs=args.n_jobs)
 
     # train the model and predict the pdf over the test set
     model_mlp.fit(x_training.astype(np.float32), y_mlp.astype(np.float32))
@@ -157,7 +165,13 @@ def main():
 
     # plot the real pdf and the predicted pdf for GMM and MLP
     plot_AllInOne(
-        x_training, x_test, pdf_predicted_mlp=pdf_predicted_mlp, pdf_predicted_gmm=pdf_predicted_gmm, pdf_true=y_test
+        x_training,
+        x_test,
+        pdf_predicted_mlp=pdf_predicted_mlp,
+        pdf_predicted_gmm=pdf_predicted_gmm,
+        pdf_true=y_test,
+        save=True,
+        name=f"result_C{n_components}_R{rate}",
     )
 
 

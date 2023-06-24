@@ -75,9 +75,9 @@ The project must follow these points:
 
 - [ ] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
 - [ ] check out the differences between the GMM biased and unbiased
-- [ ] Implement the saving plots for the experiments
+- [x] Implement the saving plots for the experiments
 - [ ] check the correctness of the ISE score function
-- [ ] maybe implement some options to pass with the command line
+- [x] maybe implement some options to pass with the command line
 - [ ] maybe implement a gridsearch also for the GMM algorithm
 
 ## File Structure:
