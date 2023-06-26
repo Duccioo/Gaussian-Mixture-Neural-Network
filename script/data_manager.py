@@ -22,8 +22,9 @@ def generate_test(range_limit: tuple = (0, 100), stepper: float = 0.001, rate: f
     return X.reshape(-1, 1), y.reshape(-1, 1)
 
 
-def generate_training_MLP_Label(X, n_components=4, seed=None):
-    model = GaussianMixtureModel(n_components=n_components, seed=seed)
+def generate_training_MLP_Label(X, n_components=4, seed=None, model=None):
+    if model is None:
+        model = GaussianMixtureModel(n_components=n_components, seed=seed, n_init=10, max_iter=100)
     Y = []
     for indx, sample in enumerate(X):
         X_1 = np.delete(X, indx).reshape(-1, 1)

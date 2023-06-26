@@ -2,9 +2,11 @@ import matplotlib.pyplot as plt
 import datetime
 import csv
 import os
+import hashlib
 
 
 def write_result(
+    id="000",
     experiment_type="model selection",
     experiment_params={"hidden_layers": [64, 32, 16], "activation": "relu"},
     best_params={"hidden_layers": [12, 31, 23], "activation": "relu"},
@@ -20,6 +22,7 @@ def write_result(
     base_dir=["..", "result", "CSV"],
 ):
     write_csv(
+        id=id,
         experiment_type=experiment_type,
         model_type=model_type,
         rate=rate,
@@ -46,28 +49,64 @@ def plot_AllInOne(
     save=False,
     show=True,
     name="figure1",
+    title="Gaussian Mixture for Exponential Distribution",
     pdf_predicted_mlp=None,
     base_dir=["..", "result", "img"],
 ):
     # Plot delle pdf
-    plt.plot(test_sample, pdf_predicted_gmm, label="Predicted PDF (GMM)")
-    plt.plot(test_sample, pdf_true, label="True PDF (Exponential)")
+    plt.plot(test_sample, pdf_predicted_gmm, label="Predicted PDF (GMM)", color="blue")
+    plt.plot(test_sample, pdf_true, label="True PDF (Exponential)", color="green", linestyle="--")
     if pdf_predicted_mlp is not None:
-        plt.plot(test_sample, pdf_predicted_mlp, label="Predicted PDF (MLP)")
+        plt.plot(
+            test_sample,
+            pdf_predicted_mlp,
+            label="Predicted PDF (MLP)",
+            color="red",
+        )
 
     plt.hist(training_sample, bins=bins, density=density, alpha=0.5, label="Data", color="gray")
-    plt.title("Gaussian Mixture for Exponential Distribution")
+    plt.title(title)
     plt.xlabel("X")
     plt.ylabel("Probability Density")
     plt.legend()
 
     if save == True:
+        extension = ".png"
         img_folder_path = check_base_dir(base_dir)
-        img_folder_name = os.path.join(img_folder_path, name + ".png")
-        plt.savefig(img_folder_name)
+        img_folder_name = os.path.join(img_folder_path, name)
+        # chekc if fil already exists
+        if os.path.isfile(img_folder_name + extension):
+            counter = 1
+            img_tmp = img_folder_name
+            while os.path.exists(img_tmp + extension):
+                img_tmp = f"{img_folder_name}_{counter}"
+                counter += 1
+
+            img_folder_name = img_tmp
+
+        plt.savefig(img_folder_name + extension)
 
     if show == True:
         plt.show()
+
+
+def generate_unique_id(params: list = [], lenght: int = 10) -> str:
+    input_str = ""
+
+    # Concateniamo le stringhe dei dati di input
+    for param in params:
+        if type(param) is list:
+            param_1 = [str(p) if not callable(p) else p.__name__ for p in param]
+        else:
+            param_1 = str(param)
+        input_str += str(param_1)
+
+    # Calcoliamo il valore hash SHA-256 della stringa dei dati di input
+    hash_obj = hashlib.sha256(input_str.encode())
+    hex_dig = hash_obj.hexdigest()
+
+    # Restituiamo i primi 8 caratteri del valore hash come ID univoco
+    return hex_dig[:lenght]
 
 
 def plot_2pdf(x1, y1, x2, y2):

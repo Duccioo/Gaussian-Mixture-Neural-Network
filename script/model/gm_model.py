@@ -1,8 +1,9 @@
-from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
+from sklearn.mixture import GaussianMixture
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 import numpy as np
 
 
-def GaussianMixtureModel(n_components=4, seed=None, **kwargs):
+def GaussianMixtureModel(n_components=4, seed=None, search=None, parameters=None, n_jobs=-1, **kwargs):
     """Make the Gaussian Mixture model
 
     Parameters:
@@ -29,12 +30,19 @@ def GaussianMixtureModel(n_components=4, seed=None, **kwargs):
     else:
         random_state = None
 
-    model =  GaussianMixture(
-        n_components=n_components,
-        init_params="random",
-        random_state=random_state,
-        **kwargs
-    )
+    if search == "gridsearch" or parameters is not None:
+        model = GaussianMixture(n_components=n_components, init_params="random", random_state=random_state)
+        model = GridSearchCV(
+            model,
+            parameters,
+            cv=5,
+            verbose=3,
+            n_jobs=n_jobs,
+        )
+
+    else:
+        model = GaussianMixture(n_components=n_components, init_params="random", random_state=random_state, **kwargs)
+
     return model
 
 

@@ -13,7 +13,7 @@ from data_manager import (
     load_training,
     load_training_MLP_Label,
 )
-from utils import plot_AllInOne, plot_histo, plot_2pdf, write_result
+from utils import plot_AllInOne, write_result, generate_unique_id
 from model.nn_model import NerualNetwork_model
 from model.gm_model import GaussianMixtureModel
 
@@ -39,9 +39,8 @@ def test_and_log(
     mlp_params="None",
     best_params="None",
     model_type="GMM",
+    id=000,
     write_to_csv=True,
-    show_img=False,
-    save_img=False,
 ):
     if model_type == "GMM":
         # predict the pdf with GMM
@@ -56,6 +55,7 @@ def test_and_log(
     if write_to_csv == True:
         # MLP scoring:
         write_result(
+            id=id,
             rate=rate,
             experiment_type=n_components,
             model_type=model_type,
@@ -75,40 +75,63 @@ def test_and_log(
 def main():
     parser = argparse.ArgumentParser(description="Project for AI Exam")
     parser.add_argument("--rate", type=int, default=0.6)
-    parser.add_argument("--n_jobs", type=int, default=2)
-    parser.add_argument("--n_samples", type=int, default=100)
-    parser.add_argument("--n_components", type=int, default=4)
+    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--samples", type=int, default=100)
+    parser.add_argument("--components", type=int, default=4)
+    parser.add_argument("--show", action="store_true", default=False)
+    parser.add_argument("--gpu", action="store_true", default=False)
 
     args = parser.parse_args()
     seed = 42
 
     # Parameters:
-    n_components = args.n_components  # number of components for the Gaussian Mixture
-    rate = args.rate # rate of the exponential distribution PDF
-    n_samples = args.n_samples  # number of samples to generate from the exp distribution
+    n_components = args.components  # number of components for the Gaussian Mixture
+    rate = args.rate  # rate of the exponential distribution PDF
+    n_samples = args.samples  # number of samples to generate from the exp distribution
     limit_test = (0, 10)  # range limit for the x-axis of the test set
     stepper_x_test = 0.001  # step to take on the limit_test for generate the test data
 
     # parameters for the gridsarch of the MLP algorithm
+    # mlp_params = {
+    #     "criterion": [nn.MSELoss, nn.L1Loss],
+    #     "max_epochs": [100, 50],
+    #     "batch_size": [1, 16, 8],
+    #     "lr": [0.01, 0.005],
+    #     "module__n_layer": [1, 2, 3],
+    #     "module__last_activation": ["lambda", nn.ReLU()],
+    #     "module__num_units": [100, 10, 50],
+    #     "module__activation": [
+    #         nn.ReLU(),
+    #         nn.Tanh(),
+    #         nn.LeakyReLU(0.05)
+    #     ],
+    #     "module__type_layer": ["increase", "decrease"],
+    #     "optimizer": [
+    #         optim.Adam,
+    #     ],
+    #     "module__dropout": [0.0, 0.5],
+    # }
+    
     mlp_params = {
         "criterion": [nn.MSELoss, nn.L1Loss],
-        "max_epochs": [100, 10],
-        "batch_size": [1, 16, 8],
-        "lr": [0.01, 0.001],
-        "module__n_layer": [1, 2, 3],
-        "module__last_activation": ["lambda", nn.ReLU()],
+        "max_epochs": [100, 50],
+        "batch_size": [16, 8],
+        "lr": [0.01, 0.005],
+        "module__n_layer": [1, 3],
+        "module__last_activation": ["lambda"],
         "module__num_units": [100, 10, 50],
         "module__activation": [
             nn.ReLU(),
-            nn.Tanh(),
         ],
-        "module__type_layer": ["increase", "decrease"],
+        "module__type_layer": ["increase", ],
         "optimizer": [
             optim.Adam,
         ],
-        "module__dropout": [0.0, 0.5],
+        "module__dropout": [0.3],
     }
 
+
+    id = generate_unique_id([mlp_params, seed, n_components, n_samples, rate], lenght=3)
 
     # generate the sample from a exponential distribution:
     x_training, _ = load_training(f"training_N{n_samples}_R{rate}.npy", n_samples=n_samples, rate=rate, seed=seed)
@@ -123,7 +146,7 @@ def main():
 
     # ------------------------ GMM: --------------------------
     # train the model
-    model_gmm = GaussianMixtureModel(n_components=n_components, seed=seed)
+    model_gmm = GaussianMixtureModel(n_components=n_components, seed=seed, n_init=10, max_iter=100)
     model_gmm.fit(x_training)
 
     # predict the pdf with GMM
@@ -134,6 +157,7 @@ def main():
         rate=rate,
         n_components=n_components,
         model_type="GMM",
+        id=id,
         write_to_csv=True,
     )
 
@@ -144,7 +168,11 @@ def main():
     )
 
     # make the model
-    model_mlp = NerualNetwork_model(parameters=mlp_params, search="gridsearch", device="cpu", n_jobs=args.n_jobs)
+    if args.gpu == True:
+        device = "cuda"
+    else:
+        device = "cpu"
+    model_mlp = NerualNetwork_model(parameters=mlp_params, search="gridsearch", device=device, n_jobs=args.jobs)
 
     # train the model and predict the pdf over the test set
     model_mlp.fit(x_training.astype(np.float32), y_mlp.astype(np.float32))
@@ -159,6 +187,7 @@ def main():
         n_components=n_components,
         mlp_params=mlp_params,
         best_params=model_mlp.best_params_,
+        id=id,
         model_type="MLP",
         write_to_csv=True,
     )
@@ -171,7 +200,9 @@ def main():
         pdf_predicted_gmm=pdf_predicted_gmm,
         pdf_true=y_test,
         save=True,
-        name=f"result_C{n_components}_R{rate}",
+        name=f"result-{id}_C{n_components}_R{rate}",
+        title=f"PDF estimation with {n_components} components",
+        show=args.show,
     )
 
 
