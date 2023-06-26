@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.metrics import r2_score, mean_squared_error, max_error, explained_variance_score
 from scipy.stats import entropy
-
 import argparse
 
 
@@ -92,44 +91,21 @@ def main():
     stepper_x_test = 0.001  # step to take on the limit_test for generate the test data
 
     # parameters for the gridsarch of the MLP algorithm
-    # mlp_params = {
-    #     "criterion": [nn.MSELoss, nn.L1Loss],
-    #     "max_epochs": [100, 50],
-    #     "batch_size": [1, 16, 8],
-    #     "lr": [0.01, 0.005],
-    #     "module__n_layer": [1, 2, 3],
-    #     "module__last_activation": ["lambda", nn.ReLU()],
-    #     "module__num_units": [100, 10, 50],
-    #     "module__activation": [
-    #         nn.ReLU(),
-    #         nn.Tanh(),
-    #         nn.LeakyReLU(0.05)
-    #     ],
-    #     "module__type_layer": ["increase", "decrease"],
-    #     "optimizer": [
-    #         optim.Adam,
-    #     ],
-    #     "module__dropout": [0.0, 0.5],
-    # }
-    
     mlp_params = {
         "criterion": [nn.MSELoss, nn.L1Loss],
         "max_epochs": [100, 50],
-        "batch_size": [16, 8],
+        "batch_size": [1, 16, 8],
         "lr": [0.01, 0.005],
-        "module__n_layer": [1, 3],
-        "module__last_activation": ["lambda"],
+        "module__n_layer": [1, 2, 3],
+        "module__last_activation": ["lambda", nn.ReLU()],
         "module__num_units": [100, 10, 50],
-        "module__activation": [
-            nn.ReLU(),
-        ],
-        "module__type_layer": ["increase", ],
+        "module__activation": [nn.ReLU(), nn.Tanh(), nn.LeakyReLU(0.05)],
+        "module__type_layer": ["increase", "decrease"],
         "optimizer": [
             optim.Adam,
         ],
-        "module__dropout": [0.3],
+        "module__dropout": [0.0, 0.5],
     }
-
 
     id = generate_unique_id([mlp_params, seed, n_components, n_samples, rate], lenght=3)
 

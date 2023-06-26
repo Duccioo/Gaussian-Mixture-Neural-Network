@@ -16,7 +16,7 @@ The project must follow these points:
 - [x] find a model for GMM (hard coding or finding a simulator)
 - [x] generate the dataset: composed of 100 examples/points taken randomly from an exponential distribution
 
-- [ ] carry out the experiments, producing as a result a graph that compares the true PDF of the exponential distribution and the one approximated by the GMM and the GMM+NN.
+- [x] carry out the experiments, producing as a result a graph that compares the true PDF of the exponential distribution and the one approximated by the GMM and the GMM+NN.
       Each experiment differs according to the number of components per GNN:
 
   - 4 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
