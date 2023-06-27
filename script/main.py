@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.metrics import r2_score, mean_squared_error, max_error, explained_variance_score
 from scipy.stats import entropy
+import re
 
 import argparse
 
@@ -44,13 +45,14 @@ def test_and_log(
     id=000,
     write_to_csv=True,
 ):
-    if model_type == "GMM":
+    pattern = re.compile(r"MLP|NN")
+    if not bool(pattern.search(model_type)):
         # predict the pdf with GMM
         pdf_predicted = np.exp(
             model.score_samples(X)
         )  # with .score_samples we get the log-likelihood over all the samples
 
-    elif model_type == "MLP" or model_type == "GMM+NN" or model_type == "GMM+MLP":
+    else:
         # predict the pdf with GMM + MLP
         pdf_predicted = model.predict(X.astype(np.float32))
 
@@ -83,6 +85,7 @@ def main():
     parser.add_argument("--components", type=int, default=4)
     parser.add_argument("--show", action="store_true", default=False)
     parser.add_argument("--gpu", action="store_true", default=False)
+    parser.add_argument("--bias", action="store_true", default=False)
 
     args = parser.parse_args()
     seed = 42
@@ -93,54 +96,28 @@ def main():
     n_samples = args.samples  # number of samples to generate from the exp distribution
     limit_test = (0, 10)  # range limits for the x-axis of the test set
     stepper_x_test = 0.001  # step to take on the limit_test for generate the test data
-
-    # parameters for the gridsarch of the MLP algorithm
-    # mlp_params = {
-    #     "criterion": [nn.MSELoss, nn.L1Loss],
-    #     "max_epochs": [100, 50],
-    #     "batch_size": [1, 16, 8],
-    #     "lr": [0.01, 0.005],
-    #     "module__n_layer": [1, 2, 3],
-    #     "module__last_activation": ["lambda", nn.ReLU()],
-    #     "module__num_units": [100, 10, 50],
-    #     "module__activation": [
-    #         nn.ReLU(),
-    #         nn.Tanh(),
-    #         nn.LeakyReLU(0.05)
-    #     ],
-    #     "module__type_layer": ["increase", "decrease"],
-    #     "optimizer": [
-    #         optim.Adam,
-    #     ],
-    #     "module__dropout": [0.0, 0.5],
-    # }
+    init_param_gmm = "random"  # the initialization of the mean vector for the base GMM
+    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model
+    max_iter = 100  # the maximum number of iterations for training the GMMs
+    n_init = 10  # the number of initial iterations for training the GMMs
 
     mlp_params = {
         "criterion": [nn.MSELoss],
-        "max_epochs": [100, 50],
-        "batch_size": [16, 8],
-        "lr": [0.02, 0.015],
-        "module__n_layer": [2,1],
+        "max_epochs": [50, 80],
+        "batch_size": [4, 8, 16],
+        "lr": [0.005, 0.01],
+        "module__n_layer": [2, 3],
         "module__last_activation": ["lambda"],
-        "module__num_units": [
-            10,
-            50,
-            90
-        ],
-        "module__activation": [
-            nn.ReLU(),
-        ],
-        "module__type_layer": [
-            "increase",
-            "decrease",
-        ],
-        "optimizer": [
-            optim.Adam,
-        ],
-        "module__dropout": [0.3, 0.5],
+        "module__num_units": [80, 50, 10],
+        "module__activation": [nn.ReLU()],
+        "module__type_layer": ["increase", "decrease"],
+        "optimizer": [optim.Adam],
+        "module__dropout": [0.3, 0.5, 0.0],
     }
 
-    id = generate_unique_id([mlp_params, seed, n_components, n_samples, rate], lenght=3)
+    id = generate_unique_id(
+        [init_param_mlp, init_param_gmm, n_init, mlp_params, seed, n_components, n_samples, rate], lenght=3
+    )
 
     # generate the sample from a exponential distribution:
     x_training, _ = load_training(f"training_N{n_samples}_R{rate}.npy", n_samples=n_samples, rate=rate, seed=seed)
@@ -156,7 +133,7 @@ def main():
     # ------------------------ GMM: --------------------------
     # train the model
     model_gmm = GaussianMixtureModel(
-        n_components=n_components, seed=seed, n_init=10, max_iter=50, init_params="k-means++"
+        n_components=n_components, seed=seed, n_init=n_init, max_iter=max_iter, init_params=init_param_gmm
     )
     model_gmm.fit(x_training)
 
@@ -168,7 +145,7 @@ def main():
         rate=rate,
         n_samples=n_samples,
         n_components=n_components,
-        model_type="GMM",
+        model_type=f"GMM {init_param_gmm}",
         id=id,
         write_to_csv=True,
     )
@@ -178,9 +155,10 @@ def main():
     _, y_mlp = load_training_MLP_Label(
         x_training,
         n_components=n_components,
-        init_params="k-means++",
-        load_file=f"training_mlp_C{n_components}_R{rate}.npy",
+        init_params=init_param_mlp,
+        load_file=f"training_mlp{'_Biased' if args.bias == True else '' }_{init_param_mlp}_C{n_components}_R{rate}.npy",
         seed=seed,
+        bias=args.bias,
     )
 
     # make the model
@@ -205,7 +183,7 @@ def main():
         mlp_params=mlp_params,
         best_params=model_mlp.best_params_,
         id=id,
-        model_type="MLP",
+        model_type=f"MLP {init_param_mlp} {'Biased' if args.bias == True else '' }",
         write_to_csv=True,
     )
 
