@@ -24,7 +24,7 @@ The project must follow these points:
   - 16 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
   - 32 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
 
-- [ ] do one last experiment: choose the best model of the GMM+NN and check the differences between the unbiased and biased models. Do the same considerations of the Parzen Neural Network apply in this case too?
+- [x] do one last experiment: choose the best model of the GMM+NN and check the differences between the unbiased and biased models. Do the same considerations of the Parzen Neural Network apply in this case too?
 
 - [ ] finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
       The report must be structured in the following chapters:
@@ -74,7 +74,7 @@ The project must follow these points:
 ## To do:
 
 - [ ] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
-- [ ] check out the differences between the GMM biased and unbiased
+- [x] check out the differences between the GMM biased and unbiased
 - [x] Implement the saving plots for the experiments
 - [ ] check the correctness of the ISE score function
 - [x] maybe implement some options to pass with the command line
@@ -118,15 +118,71 @@ In order to run all the script you need to run the following:
    pip install -r requirements.txt
    ```
 
+3. Optional if you have not install Pytorch on your machine: https://pytorch.org/get-started/locally/
+
 ## Run Locally
 
 On the repo folder:
 
 ```bash
-python script/main.py
+python script/main.py 
 ```
 
+### Command Options:
+
+- `--components <int n>` : for setting the number of components for the GMM (default 4)
+- `--jobs <int n>` : for setting the number of jobs/threads for paralelize the gridsearch (default -1, use all the cores of your machine)
+- `--rate <float n>` : for setting the rate that the true exponential pdf should be computed (default 0.6)
+- `--samples <int n>` : number of samples for the training set taken from the exponential distribution (default 100)
+- `--show` : if selected show the img at the end of the process (default false)
+- `--gpu` : if specified try to use dedicated GPU (require pytorch and cuda installed, default false)
+- `--bias` : if specified train the model with a bias version of GMM for generating the target for the MLP
+
+### Grid Search Parameters:
+
+you can specify the parameters to test the GMM+MLP model with the grid search in the `scripts/main.py` file.
+By default:
+
+```python
+{
+        "criterion": [nn.MSELoss],
+        "max_epochs": [50, 80],
+        "batch_size": [4, 8, 16],
+        "lr": [0.005, 0.01],
+        "module__n_layer": [2, 3],
+        "module__last_activation": ["lambda", nn.ReLU()],
+        "module__num_units": [80, 50, 10],
+        "module__activation": [nn.ReLU()],
+        "module__type_layer": ["increase", "decrease"],
+        "optimizer": [optim.Adam],
+        "module__dropout": [0.3, 0.5, 0.0],
+    }
+```
+
+- `module__last_activation` : set the last activation function to be applied to the model, if `lambda` is specified than it will be applied a sigmoid function with adaptive amplitude parameter 'lambda'.
+
+- `module__num_units` : set the number of neurons for the first layer of the model.
+- `module__activation` : set the activation function for all the layers.
+- `module__type_layer` : set how the layers should behave. With "increase" at each layer the number of neurons increases by a factor of 2. With "decrease" at each layer the number of neurons decrease by a factor of 2.
+
+
 ## Results:
+
+- From all the experiments it's clear that GMM+MLP performe better than regular GMM.
+- The best results that we obtained were using 32 and 4 components of the GMM+MLP.
+- Using a bias version for generete the target for the MLP gives us worse results, particularly using kmeans initialization for the GMM init parameters.
+
+### BEST RESULT:
+
+- With the gridsearch we obtained a perfect fit for the true PDF with a 32 components GMM+MLP:
+
+![result1](./result/img/result-926_C32_R0.6.png)
+
+### Bias version of the BEST RESULT:
+
+- with the best model for the GMM+MLP than we switch to a bias version:
+
+![result2](./result/img/result-926_C32_R0.6_Biased.png)
 
 ## Authors
 

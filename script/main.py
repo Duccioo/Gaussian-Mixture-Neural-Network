@@ -107,7 +107,7 @@ def main():
         "batch_size": [4, 8, 16],
         "lr": [0.005, 0.01],
         "module__n_layer": [2, 3],
-        "module__last_activation": ["lambda"],
+        "module__last_activation": ["lambda", nn.ReLU()],
         "module__num_units": [80, 50, 10],
         "module__activation": [nn.ReLU()],
         "module__type_layer": ["increase", "decrease"],

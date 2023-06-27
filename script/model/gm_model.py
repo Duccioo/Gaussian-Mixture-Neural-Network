@@ -1,5 +1,5 @@
 from sklearn.mixture import GaussianMixture
-from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 import numpy as np
 
 

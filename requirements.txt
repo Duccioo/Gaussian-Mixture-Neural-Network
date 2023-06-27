@@ -26,8 +26,6 @@ six==1.16.0
 sympy==1.12
 threadpoolctl==3.1.0
 tomli==2.0.1
-torch==2.0.1; sys_platform == "linux" or sys_platform == "darwin"
-torch==2.0.1+cu117; sys_platform == "win32"
 typing_extensions==4.6.3
 zipp==3.15.0
 skorch==0.13.0
