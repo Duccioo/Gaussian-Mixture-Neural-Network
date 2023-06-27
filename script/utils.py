@@ -19,6 +19,7 @@ def write_result(
     k1_score=0.0,
     model_type="GNN+MLP",
     log_name_file="experiment_log.csv",
+    n_samples=100,
     base_dir=["..", "result", "CSV"],
 ):
     write_csv(
@@ -26,6 +27,7 @@ def write_result(
         experiment_type=experiment_type,
         model_type=model_type,
         rate=rate,
+        n_samples=n_samples,
         r2_score=r2_score,
         MSE_score=mse_score,
         max_error_score=max_error_score,

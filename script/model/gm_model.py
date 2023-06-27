@@ -3,7 +3,7 @@ from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 import numpy as np
 
 
-def GaussianMixtureModel(n_components=4, seed=None, search=None, parameters=None, n_jobs=-1, **kwargs):
+def GaussianMixtureModel(n_components=4, seed=None, search=None, parameters=None, n_jobs=-1, init_params="random", **kwargs):
     """Make the Gaussian Mixture model
 
     Parameters:
@@ -31,7 +31,7 @@ def GaussianMixtureModel(n_components=4, seed=None, search=None, parameters=None
         random_state = None
 
     if search == "gridsearch" or parameters is not None:
-        model = GaussianMixture(n_components=n_components, init_params="random", random_state=random_state)
+        model = GaussianMixture(n_components=n_components, init_params=init_params, random_state=random_state)
         model = GridSearchCV(
             model,
             parameters,
@@ -41,7 +41,7 @@ def GaussianMixtureModel(n_components=4, seed=None, search=None, parameters=None
         )
 
     else:
-        model = GaussianMixture(n_components=n_components, init_params="random", random_state=random_state, **kwargs)
+        model = GaussianMixture(n_components=n_components, init_params=init_params, random_state=random_state, **kwargs)
 
     return model
 

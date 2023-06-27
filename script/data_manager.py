@@ -22,9 +22,11 @@ def generate_test(range_limit: tuple = (0, 100), stepper: float = 0.001, rate: f
     return X.reshape(-1, 1), y.reshape(-1, 1)
 
 
-def generate_training_MLP_Label(X, n_components=4, seed=None, model=None):
+def generate_training_MLP_Label(X, n_components=4, init_params="random", seed=None, model=None):
     if model is None:
-        model = GaussianMixtureModel(n_components=n_components, seed=seed, n_init=10, max_iter=100)
+        model = GaussianMixtureModel(
+            n_components=n_components, seed=seed, n_init=10, max_iter=100, init_params=init_params
+        )
     Y = []
     for indx, sample in enumerate(X):
         X_1 = np.delete(X, indx).reshape(-1, 1)
@@ -34,14 +36,16 @@ def generate_training_MLP_Label(X, n_components=4, seed=None, model=None):
     return X, Y
 
 
-def load_training_MLP_Label(X, load_file=False, n_components=4, seed=None, base_dir=["..", "data"]):
+def load_training_MLP_Label(
+    X, load_file=False, init_params="random", n_components=4, seed=None, base_dir=["..", "data"]
+):
     file_path = check_base_dir(base_dir)
     file_path = os.path.join(file_path, load_file)
 
     if load_file != False and os.path.isfile(file_path):
         X, y = load_dataset(load_file)
     else:
-        X, y = generate_training_MLP_Label(X, n_components=n_components, seed=seed)
+        X, y = generate_training_MLP_Label(X, n_components=n_components, seed=seed, init_params=init_params)
         if load_file != False:
             save_dataset([X, y], load_file)
     return X, y

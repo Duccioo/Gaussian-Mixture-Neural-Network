@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from sklearn.metrics import r2_score, mean_squared_error, max_error, explained_variance_score
 from scipy.stats import entropy
+
 import argparse
 
 
@@ -19,7 +20,8 @@ from model.gm_model import GaussianMixtureModel
 
 def calculate_kl_divergence(true_pdf, predicted_pdf):
     kl_divergence = entropy(true_pdf, predicted_pdf)
-    return kl_divergence
+
+    return np.mean(kl_divergence)
 
 
 def calculate_ise(true_pdf, predicted_pdf, bin_width=0.01):
@@ -34,6 +36,7 @@ def test_and_log(
     X,
     y,
     rate=1.0,
+    n_samples=100,
     n_components=4,
     mlp_params="None",
     best_params="None",
@@ -60,6 +63,7 @@ def test_and_log(
             model_type=model_type,
             experiment_params=mlp_params,
             best_params=best_params,
+            n_samples=n_samples,
             r2_score=r2_score(y, pdf_predicted),
             mse_score=np.sqrt(mean_squared_error(y, pdf_predicted)),
             max_error_score=max_error(y, pdf_predicted),
@@ -87,24 +91,53 @@ def main():
     n_components = args.components  # number of components for the Gaussian Mixture
     rate = args.rate  # rate of the exponential distribution PDF
     n_samples = args.samples  # number of samples to generate from the exp distribution
-    limit_test = (0, 10)  # range limit for the x-axis of the test set
+    limit_test = (0, 10)  # range limits for the x-axis of the test set
     stepper_x_test = 0.001  # step to take on the limit_test for generate the test data
 
     # parameters for the gridsarch of the MLP algorithm
+    # mlp_params = {
+    #     "criterion": [nn.MSELoss, nn.L1Loss],
+    #     "max_epochs": [100, 50],
+    #     "batch_size": [1, 16, 8],
+    #     "lr": [0.01, 0.005],
+    #     "module__n_layer": [1, 2, 3],
+    #     "module__last_activation": ["lambda", nn.ReLU()],
+    #     "module__num_units": [100, 10, 50],
+    #     "module__activation": [
+    #         nn.ReLU(),
+    #         nn.Tanh(),
+    #         nn.LeakyReLU(0.05)
+    #     ],
+    #     "module__type_layer": ["increase", "decrease"],
+    #     "optimizer": [
+    #         optim.Adam,
+    #     ],
+    #     "module__dropout": [0.0, 0.5],
+    # }
+
     mlp_params = {
-        "criterion": [nn.MSELoss, nn.L1Loss],
+        "criterion": [nn.MSELoss],
         "max_epochs": [100, 50],
-        "batch_size": [1, 16, 8],
-        "lr": [0.01, 0.005],
-        "module__n_layer": [1, 2, 3],
-        "module__last_activation": ["lambda", nn.ReLU()],
-        "module__num_units": [100, 10, 50],
-        "module__activation": [nn.ReLU(), nn.Tanh(), nn.LeakyReLU(0.05)],
-        "module__type_layer": ["increase", "decrease"],
+        "batch_size": [16, 8],
+        "lr": [0.02, 0.015],
+        "module__n_layer": [2,1],
+        "module__last_activation": ["lambda"],
+        "module__num_units": [
+            10,
+            50,
+            90
+        ],
+        "module__activation": [
+            nn.ReLU(),
+        ],
+        "module__type_layer": [
+            "increase",
+            "decrease",
+        ],
         "optimizer": [
             optim.Adam,
         ],
-        "module__dropout": [0.0, 0.5],
+        "module__dropout": [0.3, 0.5],
     }
 
     id = generate_unique_id([mlp_params, seed, n_components, n_samples, rate], lenght=3)
@@ -122,7 +155,9 @@ def main():
 
     # ------------------------ GMM: --------------------------
     # train the model
-    model_gmm = GaussianMixtureModel(n_components=n_components, seed=seed, n_init=10, max_iter=100)
+    model_gmm = GaussianMixtureModel(
+        n_components=n_components, seed=seed, n_init=10, max_iter=50, init_params="k-means++"
+    )
     model_gmm.fit(x_training)
 
     # predict the pdf with GMM
@@ -131,6 +166,7 @@ def main():
         X=x_test,
         y=y_test,
         rate=rate,
+        n_samples=n_samples,
         n_components=n_components,
         model_type="GMM",
         id=id,
@@ -140,7 +176,11 @@ def main():
     # ------------------------ GMM + NN: --------------------------
     # generate MLP label from GMM unbiased
     _, y_mlp = load_training_MLP_Label(
-        x_training, n_components=n_components, load_file=f"training_mlp_C{n_components}_R{rate}.npy", seed=seed
+        x_training,
+        n_components=n_components,
+        init_params="k-means++",
+        load_file=f"training_mlp_C{n_components}_R{rate}.npy",
+        seed=seed,
     )
 
     # make the model
@@ -160,6 +200,7 @@ def main():
         X=x_test,
         y=y_test,
         rate=rate,
+        n_samples=n_samples,
         n_components=n_components,
         mlp_params=mlp_params,
         best_params=model_mlp.best_params_,
