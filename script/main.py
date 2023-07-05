@@ -88,6 +88,7 @@ def main():
     parser.add_argument("--bias", action="store_true", default=False)
 
     args = parser.parse_args()
+    
     seed = 42
 
     # Parameters:
@@ -97,7 +98,7 @@ def main():
     limit_test = (0, 10)  # range limits for the x-axis of the test set
     stepper_x_test = 0.001  # step to take on the limit_test for generate the test data
     init_param_gmm = "random"  # the initialization of the mean vector for the base GMM
-    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model
+    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model
     max_iter = 100  # the maximum number of iterations for training the GMMs
     n_init = 10  # the number of initial iterations for training the GMMs
 
@@ -105,15 +106,16 @@ def main():
         "criterion": [nn.MSELoss],
         "max_epochs": [50, 80],
         "batch_size": [4, 8, 16],
-        "lr": [0.005, 0.01],
+        "lr": [0.005, 0.01, 0.015],
         "module__n_layer": [2, 3],
         "module__last_activation": ["lambda", nn.ReLU()],
         "module__num_units": [80, 50, 10],
-        "module__activation": [nn.ReLU()],
+        "module__activation": [nn.ReLU(), nn.Tanh()],
         "module__type_layer": ["increase", "decrease"],
         "optimizer": [optim.Adam],
         "module__dropout": [0.3, 0.5, 0.0],
     }
+    
 
     id = generate_unique_id(
         [init_param_mlp, init_param_gmm, n_init, mlp_params, seed, n_components, n_samples, rate], lenght=3
@@ -166,6 +168,7 @@ def main():
         device = "cuda"
     else:
         device = "cpu"
+        
     model_mlp = NerualNetwork_model(parameters=mlp_params, search="gridsearch", device=device, n_jobs=args.jobs)
 
     # train the model and predict the pdf over the test set

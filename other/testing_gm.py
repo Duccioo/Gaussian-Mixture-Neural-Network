@@ -13,7 +13,7 @@ X = np.random.exponential(scale=1 / rate, size=n_samples)
 n_components = 16  # Numero di componenti nel modello di Gaussian Mixture
 gmm = GaussianMixture(
     n_components=n_components,
-    init_params="random",
+    init_params="kmeans",
     covariance_type="full",
     # max_iter=1000,
     n_init=10,

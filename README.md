@@ -73,12 +73,12 @@ The project must follow these points:
 
 ## To do:
 
-- [ ] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
+- [x] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
 - [x] check out the differences between the GMM biased and unbiased
 - [x] Implement the saving plots for the experiments
 - [ ] check the correctness of the ISE score function
 - [x] maybe implement some options to pass with the command line
-- [ ] maybe implement a gridsearch also for the GMM algorithm
+- [x] maybe implement a gridsearch also for the GMM algorithm
 
 ## File Structure:
 
@@ -125,7 +125,7 @@ In order to run all the script you need to run the following:
 On the repo folder:
 
 ```bash
-python script/main.py 
+python script/main.py
 ```
 
 ### Command Options:
@@ -165,7 +165,6 @@ By default:
 - `module__activation` : set the activation function for all the layers.
 - `module__type_layer` : set how the layers should behave. With "increase" at each layer the number of neurons increases by a factor of 2. With "decrease" at each layer the number of neurons decrease by a factor of 2.
 
-
 ## Results:
 
 - From all the experiments it's clear that GMM+MLP performe better than regular GMM.
@@ -183,6 +182,10 @@ By default:
 - with the best model for the GMM+MLP than we switch to a bias version:
 
 ![result2](./result/img/result-926_C32_R0.6_Biased.png)
+
+## Report:
+
+[Report LINK ](https://duccioo.github.io/Gaussian-Mixture-Neural-Network/AI__Project_Report.pdf)
 
 ## Authors
 
