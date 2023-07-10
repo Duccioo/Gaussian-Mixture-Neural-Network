@@ -14,7 +14,7 @@ from data_manager import (
     load_training,
     load_training_MLP_Label,
 )
-from utils import plot_AllInOne, write_result, generate_unique_id
+from utils import plot_AllInOne, write_result, generate_unique_id, plot_generatedtarget
 from model.nn_model import NerualNetwork_model
 from model.gm_model import GaussianMixtureModel
 
@@ -88,7 +88,7 @@ def main():
     parser.add_argument("--bias", action="store_true", default=False)
 
     args = parser.parse_args()
-    
+
     seed = 42
 
     # Parameters:
@@ -98,7 +98,7 @@ def main():
     limit_test = (0, 10)  # range limits for the x-axis of the test set
     stepper_x_test = 0.001  # step to take on the limit_test for generate the test data
     init_param_gmm = "random"  # the initialization of the mean vector for the base GMM
-    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model
+    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model
     max_iter = 100  # the maximum number of iterations for training the GMMs
     n_init = 10  # the number of initial iterations for training the GMMs
 
@@ -115,14 +115,30 @@ def main():
         "optimizer": [optim.Adam],
         "module__dropout": [0.3, 0.5, 0.0],
     }
-    
+
+    # # best params:
+    # mlp_params = {
+    #     "criterion": [nn.MSELoss],
+    #     "max_epochs": [50],
+    #     "batch_size": [4],
+    #     "lr": [0.005],
+    #     "module__n_layer": [2],
+    #     "module__last_activation": ["lambda"],
+    #     "module__num_units": [80],
+    #     "module__activation": [nn.ReLU()],
+    #     "module__type_layer": ["increase"],
+    #     "optimizer": [optim.Adam],
+    #     "module__dropout": [0.3],
+    # }
 
     id = generate_unique_id(
         [init_param_mlp, init_param_gmm, n_init, mlp_params, seed, n_components, n_samples, rate], lenght=3
     )
 
     # generate the sample from a exponential distribution:
-    x_training, _ = load_training(f"training_N{n_samples}_R{rate}.npy", n_samples=n_samples, rate=rate, seed=seed)
+    x_training, y_training = load_training(
+        f"training_N{n_samples}_R{rate}.npy", n_samples=n_samples, rate=rate, seed=seed
+    )
 
     # generate the data for plotting the pdf
     x_test, y_test = load_test(
@@ -154,7 +170,7 @@ def main():
 
     # ------------------------ GMM + NN: --------------------------
     # generate MLP label from GMM unbiased
-    _, y_mlp = load_training_MLP_Label(
+    x_mlp, y_mlp = load_training_MLP_Label(
         x_training,
         n_components=n_components,
         init_params=init_param_mlp,
@@ -163,12 +179,22 @@ def main():
         bias=args.bias,
     )
 
+    # check biased vs unbiased of the target output from the GMM
+    # plot_generatedtarget(
+    #     x_mlp,
+    #     y_mlp,
+    #     x_training,
+    #     y_training,
+    #     "Biased Targets " + init_param_mlp if args.bias == True else "Unbiased Targets " + init_param_mlp,
+    #     "True Targets",
+    # )
+
     # make the model
     if args.gpu == True:
         device = "cuda"
     else:
         device = "cpu"
-        
+
     model_mlp = NerualNetwork_model(parameters=mlp_params, search="gridsearch", device=device, n_jobs=args.jobs)
 
     # train the model and predict the pdf over the test set
