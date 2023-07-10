@@ -111,9 +111,19 @@ def generate_unique_id(params: list = [], lenght: int = 10) -> str:
     return hex_dig[:lenght]
 
 
-def plot_2pdf(x1, y1, x2, y2):
-    plt.plot(x1, y1, label="pdf 1")
-    plt.plot(x2, y2, label="pdf 2")
+def plot_2pdf(x1, y1, x2, y2, label1="pdf 1", label2="pdf 2"):
+    plt.plot(x1, y1, label=label1)
+    plt.plot(x2, y2, label=label2)
+    plt.xlabel("X")
+    plt.ylabel("Probability Density")
+    plt.legend()
+    plt.show()
+
+
+def plot_generatedtarget(x1, y1, x2, y2, label1="pdf 1", label2="pdf 2"):
+    plt.scatter(x2, y2, label=label2)
+    plt.scatter(x1, y1, label=label1)
+
     plt.xlabel("X")
     plt.ylabel("Probability Density")
     plt.legend()

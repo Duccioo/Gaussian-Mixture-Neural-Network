@@ -76,9 +76,10 @@ The project must follow these points:
 - [x] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
 - [x] check out the differences between the GMM biased and unbiased
 - [x] Implement the saving plots for the experiments
-- [ ] check the correctness of the ISE score function
+- [x] check the correctness of the ISE score function
 - [x] maybe implement some options to pass with the command line
 - [x] maybe implement a gridsearch also for the GMM algorithm
+- [ ] implement a function to plot only the differences between the biased and unbiased versions
 
 ## File Structure:
 
@@ -160,7 +161,6 @@ By default:
 ```
 
 - `module__last_activation` : set the last activation function to be applied to the model, if `lambda` is specified than it will be applied a sigmoid function with adaptive amplitude parameter 'lambda'.
-
 - `module__num_units` : set the number of neurons for the first layer of the model.
 - `module__activation` : set the activation function for all the layers.
 - `module__type_layer` : set how the layers should behave. With "increase" at each layer the number of neurons increases by a factor of 2. With "decrease" at each layer the number of neurons decrease by a factor of 2.
