@@ -26,7 +26,7 @@ The project must follow these points:
 
 - [x] do one last experiment: choose the best model of the GMM+NN and check the differences between the unbiased and biased models. Do the same considerations of the Parzen Neural Network apply in this case too?
 
-- [ ] finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
+- [x] finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
       The report must be structured in the following chapters:
   - title
   - abstracts
@@ -34,8 +34,6 @@ The project must follow these points:
   - explanation of the algorithm
   - the experiments and the results through the plots
   - personal conclusions
-
-</details>
 
 ### remarks:
 
@@ -71,15 +69,7 @@ The project must follow these points:
    > estimated pdf and the true pdf (you can do that you feel like it, of
    > course!)
 
-## To do:
-
-- [x] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
-- [x] check out the differences between the GMM biased and unbiased
-- [x] Implement the saving plots for the experiments
-- [x] check the correctness of the ISE score function
-- [x] maybe implement some options to pass with the command line
-- [x] maybe implement a gridsearch also for the GMM algorithm
-- [ ] implement a function to plot only the differences between the biased and unbiased versions
+</details>
 
 ## File Structure:
 
@@ -186,6 +176,16 @@ By default:
 ## Report:
 
 [Report LINK ](https://duccioo.github.io/Gaussian-Mixture-Neural-Network/AI__Project_Report.pdf)
+
+## To do:
+
+- [x] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
+- [x] check out the differences between the GMM biased and unbiased
+- [x] Implement the saving plots for the experiments
+- [x] check the correctness of the ISE score function
+- [x] maybe implement some options to pass with the command line
+- [x] maybe implement a gridsearch also for the GMM algorithm
+- [x] implement a function to plot only the differences between the biased and unbiased versions
 
 ## Authors
 
