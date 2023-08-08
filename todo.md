@@ -28,21 +28,26 @@
 
 ## Roadmap:
 
-- New Code
+- New Code:
 
   - More Model to predict PDF:
-    - GMM (already implemented)
-    - Parzien Window (h1=1)
-    - kn-NN (k1=1)
+
+    - Parzen Window (h1=1) (maybe not implemented in SKlearn)
+    - kn-NN (k1=1) (it's already implemented in SKLEARN)
 
   - More PDFs:
-    - Exponential (already implemented)
+
     - Multimodal:
-      - Combining Logistic PDFs (start with 3)
-      - COmbining Fischer Tippett PDFS (start with 3)
+      - Combining Logistic or Fischer Tippett PDFs (start with 3)
 
-- More Dimensions
+  - More Dimensions:
+    - maybe just add a command option
 
-- Svolgere esperimenti
+  - More training data (already implemented):
+    - add a command option to set up the number of training samples
 
-- Scrivere Report
+- Do the experiments:
+
+  - (repeat several times to get more precise results)
+
+- Write the Report
