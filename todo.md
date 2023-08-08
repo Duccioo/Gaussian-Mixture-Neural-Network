@@ -41,6 +41,7 @@
       - Combining Logistic or Fischer Tippett PDFs (start with 3)
 
   - More Dimensions:
+
     - maybe just add a command option
 
   - More training data (already implemented):
