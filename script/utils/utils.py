@@ -4,36 +4,50 @@ import csv
 import os
 import hashlib
 
+# import sys
+# sys.path.append("..")
+
+BASE_RESULT_DIR = ["..", "..", "result_2"]
+
 
 def write_result(
-    id="000",
-    experiment_type="model selection",
-    experiment_params={"hidden_layers": [64, 32, 16], "activation": "relu"},
-    best_params={"hidden_layers": [12, 31, 23], "activation": "relu"},
-    r2_score=0.0,
-    rate=1.0,
-    mse_score=0.0,
-    max_error_score=0.0,
-    evs_score=0.0,
-    ise_score=0.0,
-    k1_score=0.0,
-    model_type="GNN+MLP",
-    log_name_file="experiment_log.csv",
-    n_samples=100,
-    base_dir=["..", "result", "CSV"],
+    id: str or int = "000",
+    components: int = 4,
+    pdf_type: list = [{"type": "exponential", "mean": 0.6}],
+    experiment_params: dict = {"hidden_layers": [64, 32, 16], "activation": "relu"},
+    best_params: dict or None = None,
+    r2_score: float = 0.0,
+    mse_score: float = 0.0,
+    max_error_score: float = 0.0,
+    evs_score: float = 0.0,
+    ise_score: float = 0.0,
+    k1_score: float = 0.0,
+    model_type: str = "GNN+MLP",
+    log_name_file: str = "experiment_log.csv",
+    n_samples: int = 100,
+    dimension: int = 1,
+    base_dir=[BASE_RESULT_DIR, "CSV"],
 ):
+    if best_params is not None and isinstance(best_params, dict):
+        # print(best_params, type(best_params))
+        epoch = best_params.get("max_epoch")
+    else:
+        epoch = "None"
+
     write_csv(
         id=id,
-        experiment_type=experiment_type,
-        model_type=model_type,
-        rate=rate,
-        n_samples=n_samples,
+        components=components,
+        model=model_type,
+        samples=n_samples,
+        dimension=dimension,
         r2_score=r2_score,
         MSE_score=mse_score,
         max_error_score=max_error_score,
         EVS_score=evs_score,
         ISE_score=ise_score,
         k1_score=k1_score,
+        pdf_type=pdf_type,
+        epoch=epoch,
         experiment_params=experiment_params,
         best_params=best_params,
         log_name_file=log_name_file,
@@ -44,8 +58,8 @@ def write_result(
 def plot_AllInOne(
     training_sample,
     test_sample,
-    pdf_predicted_gmm,
-    pdf_true,
+    pdf_predicted_gmm=None,
+    pdf_true=None,
     bins=32,
     density=True,
     save=False,
@@ -53,11 +67,13 @@ def plot_AllInOne(
     name="figure1",
     title="Gaussian Mixture for Exponential Distribution",
     pdf_predicted_mlp=None,
-    base_dir=["..", "result", "img"],
+    base_dir=[BASE_RESULT_DIR, "img"],
 ):
     # Plot delle pdf
-    plt.plot(test_sample, pdf_predicted_gmm, label="Predicted PDF (GMM)", color="blue")
-    plt.plot(test_sample, pdf_true, label="True PDF (Exponential)", color="green", linestyle="--")
+    if pdf_predicted_gmm is not None:
+        plt.plot(test_sample, pdf_predicted_gmm, label="Predicted PDF (GMM)", color="blue")
+    if pdf_true is not None:
+        plt.plot(test_sample, pdf_true, label="True PDF (Exponential)", color="green", linestyle="--")
     if pdf_predicted_mlp is not None:
         plt.plot(
             test_sample,
@@ -145,11 +161,18 @@ def check_base_dir(*args):
     absolute_path = os.path.dirname(__file__)
 
     full_path = absolute_path
+    # args = [item for sublist in args for item in sublist]
     for idx, path in enumerate(args):
         # check if arguments are a list
+
         if type(path) is list:
+            # path = [item for sublist in path for item in sublist if not isinstance(item, str)]
             for micro_path in path:
-                full_path = os.path.join(full_path, micro_path)
+                if isinstance(micro_path, list):
+                    for micro_micro_path in micro_path:
+                        full_path = os.path.join(full_path, micro_micro_path)
+                else:
+                    full_path = os.path.join(full_path, micro_path)
 
         else:
             full_path = os.path.join(full_path, path)

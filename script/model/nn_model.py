@@ -1,18 +1,40 @@
 import torch.nn as nn
 import torch
-from skorch import NeuralNet
-from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+import torch.nn.init as init
+from skorch import NeuralNet, NeuralNetRegressor
+from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
 import numpy as np
-
+from attrs import define, field
+from sklearn.mixture import GaussianMixture
+import os
+from itertools import product
+from tqdm import tqdm
+from skorch.callbacks import Callback
 
 # ---
+from utils.utils import check_base_dir, generate_unique_id
+from model.gm_model import generate_target_MLP
+
+BASE_DATA_DIR = ["..", "..", "data_2", "MLP"]
+
+# pbar = tqdm(total=120, desc="Training progress")
+
+
+# Callback personalizzata per la stampa della progress bar
+class ProgressBarCallback(Callback):
+    def __init__(self, pbar=None) -> None:
+        super().__init__()
+        self.pbar = pbar
+
+    def on_train_end(self, net, X, y):
+        self.pbar.update(1)  # Aggiorna la barra di progressione
+        self.pbar.set_postfix({"Training": self.pbar.n})  # Aggiorna il messaggio nella barra
 
 
 class AdaptiveSigmoid(nn.Module):
     def __init__(self, lambda_init=1.0):
         super(AdaptiveSigmoid, self).__init__()
-
         self.lambda_param = nn.Parameter(torch.tensor(lambda_init))
         self.sigmoid = nn.Sigmoid()
 
@@ -24,132 +46,210 @@ class AdaptiveSigmoid(nn.Module):
 class NeuralNetworkModular(nn.Module):
     def __init__(
         self,
-        input_features=1,
-        output_features=1,
-        dropout=0.5,
-        num_units=10,
-        activation=nn.ReLU(),
+        input_features: int = 1,
+        output_features: int = 1,
+        dropout: int = 0.5,
+        hidden_layer: list = [(10, nn.ReLU())],
         last_activation=False,
-        n_layer=2,
-        type_layer="decrease",
         device="cpu",
     ):
-        super().__init__()
+        super(NeuralNetworkModular, self).__init__()
         self.dropout = nn.Dropout(dropout)
         self.layers = []
-        self.layers.append(nn.Linear(input_features, num_units, device=device))
-        for i in range(n_layer - 1):
-            if type_layer == "decrease":
-                self.layers.append(
-                    nn.Linear(int(num_units / (2**i)), int(num_units / (2 ** (i + 1))), device=device)
-                )
+        self.activation = []
 
-            else:
-                self.layers.append(
-                    nn.Linear(int(num_units * (2**i)), int(num_units * (2 ** (i + 1))), device=device)
-                )
+        # check if neurons are all paired with an activation function:
+        # if len(num_units) != len(activation):
+        #     raise ValueError("The number of units not match the number of activation functions")
 
-        if type_layer == "decrease":
-            self.output_layer = nn.Linear(int(num_units / (2 ** (n_layer - 1))), output_features, device=device)
-        else:
-            self.output_layer = nn.Linear(int(num_units * (2 ** (n_layer - 1))), output_features, device=device)
+        self.layers.append(nn.Linear(input_features, hidden_layer[0][0], device=device))
+        self.activation.append(hidden_layer[0][1])
 
-        self.activation = activation
+        for i, (neurons, activation) in enumerate(hidden_layer):
+            if i != len(hidden_layer) - 1:
+                self.layers.append(nn.Linear(int(neurons), int(hidden_layer[i + 1][0]), device=device))
+                self.activation.append(activation)
+
+        self.layers = nn.ModuleList(self.layers)
+        # print(self.layers)
+        self.output_layer = nn.Linear(int(hidden_layer[-1][0]), output_features, device=device)
+
+        for layer in self.layers:
+            init.xavier_normal_(layer.weight)
 
         if last_activation == "lambda":
             self.last_activation = AdaptiveSigmoid()
         else:
             self.last_activation = last_activation
 
+        init.xavier_normal_(self.output_layer.weight)
+
     def forward(self, x):
-        for layer in self.layers:
-            x = layer(x)
-            x = self.activation(x)
-            x = self.dropout(x)
-
+        for layer, activation in zip(self.layers, self.activation):
+            x = activation(layer(x))
         x = self.output_layer(x)
-
-        if self.last_activation:
+        if self.last_activation is not None:
             x = self.last_activation(x)
 
         return x
 
 
-def NerualNetwork_model(
-    parameters: dict, search: str = None, device: str = "auto", n_jobs: int = 4, seed=42, **kwargs
-):
-    """
-    Function for create the model of the Network with gridsearch and randomsearch possibilities.
+@define(slots=True)
+class GM_NN_Model:
+    parameters: dict = field(factory=dict)
+    criterion: list = field(factory=list, init=True)
+    n_components: int = field(default=4, init=True)
+    bias: bool = field(default=False, init=True)
+    init_params: str = field(default="random", init=True)
+    base_dir: str = field(init=True, default=check_base_dir(BASE_DATA_DIR))
 
-    Args:
-        parameters (dict):
-        search (str, optional): Option:[gridsearch, randomsearch]. Defaults to None.
-        device (str, optional): Option:[auto, cpu, cuda]. Defaults to "auto".
-        n_jobs (int, optional): Description: number of cores to use in the gridsearch and randomsearch. Defaults to -1.
-        seed (int, optional): Description: Seed for the initialization of the parameters
+    seed: int = field(default=42, init=True)
 
-    Returns:
-        a Neural Network model in the type of sklearn model
-    """
-    torch.manual_seed(seed)
+    gm_model: GaussianMixture = field(factory=GaussianMixture)
+    nn_model: NeuralNet = NeuralNet(NeuralNetworkModular, nn.MSELoss)
 
-    if device == "auto":
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+    def __init__(
+        self,
+        parameters: dict = {},
+        n_components: int = 4,
+        bias: bool = False,
+        init_params: str = "random",
+        base_dir: list or None = None,
+        seed: int or None = None,
+    ):
+        if base_dir is None:
+            base_dir = check_base_dir(BASE_DATA_DIR)
+        else:
+            base_dir = check_base_dir(base_dir)
 
-    if type(parameters["criterion"]) == list or search == "gridsearch":
-        model = NeuralNet(
-            NeuralNetworkModular,
-            parameters["criterion"][0],
-            **kwargs,
-            verbose=0,
-            device=device,
-            module__device=device,
-        )
-        model = GridSearchCV(
-            model,
+        if isinstance(parameters, list) == False and parameters.get("criterion") == None:
+            raise ValueError("Please specify a valid criterion!")
+        criterion = parameters.get("criterion")
+
+        if isinstance(criterion, list) == False:
+            criterion = [criterion]
+
+        self.__attrs_init__(
             parameters,
-            refit="r2",
-            cv=5,
-            verbose=3,
-            n_jobs=n_jobs,
-            scoring=["r2", "max_error", "explained_variance", "neg_mean_absolute_percentage_error"],
+            criterion=criterion,
+            n_components=n_components,
+            bias=bias,
+            init_params=init_params,
+            base_dir=base_dir,
+            seed=seed,
         )
 
-    elif search == "randomsearch":
-        model = NeuralNet(NeuralNetworkModular, device=device, **kwargs)
-        model = RandomizedSearchCV(
-            model,
-            parameters,
-            refit=True,
-            cv=5,
-            verbose=50,
-            n_jobs=n_jobs,
-            device=device,
-            module__device=device,
-        )
+    def __attrs_post_init__(self):
+        if self.seed is not None:
+            torch.manual_seed(self.seed)
 
-    else:
-        model = NeuralNet(
-            NeuralNetworkModular,
-            criterion=parameters["criterion"],
-            **kwargs,
-            verbose=0,
-            device=device,
-            module__device=device,
-        )
+        # setup the Gaussian Mixture Model:
+        self.gm_model = GaussianMixture(self.n_components, init_params=self.init_params, random_state=self.seed)
 
-    return model
+    def fit(
+        self,
+        X,
+        search_type: str or None = None,
+        n_jobs: int = 1,
+        device: str or None = "cpu",
+        save_filename: str or None = None,
+        base_dir: str or None = None,
+    ):
+        if device == "auto" or device == None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        if search_type == "auto":
+            for value in self.parameters.values():
+                if isinstance(value, list):
+                    search_type = "gridsearch"
+                    break
+
+        if search_type == None:
+            new_dict = {}
+            for key, value in self.parameters.items():
+                if isinstance(value, list) and len(value) > 0:
+                    new_dict[key] = value[0]
+                else:
+                    new_dict[key] = value
+
+            self.nn_model = NeuralNet(
+                NeuralNetworkModular,
+                **new_dict,
+                verbose=1,
+                device=device,
+                module__device=device,
+                module__input_features=X.shape[1],
+            )
+
+        elif search_type == "gridsearch":
+            new_dict = {}
+            for key, value in self.parameters.items():
+                if not isinstance(value, list):
+                    new_dict[key] = [value]
+                else:
+                    new_dict[key] = value
+
+            total_train_count = len(list(product(*self.parameters.values()))) * 5
+            progress_bar = tqdm(total=total_train_count, desc="Training", disable=False, leave=True)
+
+            nn_model_net = NeuralNet(
+                NeuralNetworkModular,
+                self.criterion[0],
+                verbose=0,
+                device=device,
+                module__device=device,
+                module__input_features=X.shape[1],
+                # callbacks=[ProgressBarCallback(pbar=progress_bar)],
+            )
+
+            self.nn_model = GridSearchCV(
+                nn_model_net,
+                new_dict,
+                refit="r2",
+                cv=5,
+                verbose=0,
+                n_jobs=n_jobs,
+                # pre_dispatch=2,
+                scoring=["r2", "max_error", "explained_variance"],
+            )
+
+        # generate the id
+        unique_id = generate_unique_id([X, self.n_components, self.bias, self.init_params, self.seed], 5)
+
+        # check if a saved target file exists:
+        if base_dir is None:
+            base_dir = self.base_dir
+
+        if save_filename is not None:
+            save_filename = save_filename.split(".")[0]
+            save_filename = save_filename + "_" + unique_id + ".npy"
+            save_filename = os.path.join(base_dir, save_filename)
+
+        _, Y = generate_target_MLP(gm_model=self.gm_model, X=X, save_filename=save_filename, bias=self.bias)
+
+        self.nn_model.fit(torch.tensor(X, dtype=torch.float32), torch.tensor(Y, dtype=torch.float32))
+        # plt.scatter(X, Y)
+        # plt.show()
+
+        # print(r2_score(Y, self.nn_model.predict(X.astype(np.float32))))
+        # print("datii", Y[0:10], X[0:10])
+
+        return self.nn_model, Y
+
+    def predict(self, X):
+        return self.nn_model.predict(torch.tensor(X, dtype=torch.float32))
 
 
 if __name__ == "__main__":
     num_samples = 1000
     test_size = 0.2
     random_state = 42
+    rate = 0.5
 
     # Generate random number for a random dataset
     np.random.seed(random_state)
-    x = np.random.uniform(0, 1, num_samples)
-    y = x**2
+    x = np.random.exponential(scale=1 / rate, size=num_samples)
+    y = rate * np.exp(x * (-rate))
 
     # split the dataset into training and test sets
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=random_state)
@@ -159,21 +259,17 @@ if __name__ == "__main__":
     y_test = y_test.reshape(-1, 1)
 
     # create the model
-    params = {"criterion": nn.L1Loss}
-    model = NerualNetwork_model(
-        params,
-        lr=0.01,
-        max_epochs=100,
-        batch_size=128,
-        module__n_layer=2,
-        module__activation=nn.Tanh(),
-        module__num_units=500,
-    )
+    params = {
+        "criterion": nn.MSELoss,
+        "max_epochs": [100, 50],
+        "module__num_units": [80, 150],
+        "module__last_activation": "lambda",
+    }
 
-    # train the model
-    model.fit(torch.Tensor(x_train), torch.Tensor(y_train))
+    model = GM_NN_Model(parameters=params, n_components=4, bias=False, init_params="random", seed=random_state)
+    m = model.fit(x_train, n_jobs=4, save_filename="prova.npy")
 
     # test the model
-    out = model.predict(torch.Tensor(x_test))
+    out = m.predict(torch.Tensor(x_test))
     print(out[0:5].reshape(-1).round(3))
     print(y_test[0:5].reshape(-1).round(3))

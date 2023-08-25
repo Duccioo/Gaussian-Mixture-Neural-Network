@@ -29,3 +29,11 @@ tomli==2.0.1
 typing_extensions==4.6.3
 zipp==3.15.0
 skorch==0.13.0
+attrs==23.1.0
+
+
+
+{'batch_size': 8, 'criterion': <class 'torch.nn.modules.loss.MSELoss'>, 'lr': 0.01, 
+'max_epochs': 50, 'module__activation': ReLU(), 'module__dropout': 0.1, 
+'module__last_activation': 'lambda', 'module__n_layer': 1, 'module__num_units': 50, 
+'module__type_layer': 'decrease', 'optimizer': <class 'torch.optim.adam.Adam'>}
