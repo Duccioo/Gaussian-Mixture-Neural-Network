@@ -1,35 +1,21 @@
 import torch.nn as nn
 import torch
 import torch.nn.init as init
-from skorch import NeuralNet, NeuralNetRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
+from skorch import NeuralNet
+from skorch.callbacks import EarlyStopping, EpochScoring
 import numpy as np
 from attrs import define, field
 from sklearn.mixture import GaussianMixture
 import os
-from itertools import product
-from tqdm import tqdm
-from skorch.callbacks import Callback
+
 
 # ---
 from utils.utils import check_base_dir, generate_unique_id
 from model.gm_model import generate_target_MLP
 
-BASE_DATA_DIR = ["..", "..", "data_2", "MLP"]
-
-# pbar = tqdm(total=120, desc="Training progress")
-
-
-# Callback personalizzata per la stampa della progress bar
-class ProgressBarCallback(Callback):
-    def __init__(self, pbar=None) -> None:
-        super().__init__()
-        self.pbar = pbar
-
-    def on_train_end(self, net, X, y):
-        self.pbar.update(1)  # Aggiorna la barra di progressione
-        self.pbar.set_postfix({"Training": self.pbar.n})  # Aggiorna il messaggio nella barra
+BASE_DATA_DIR = ["..", "..", "data", "MLP"]
 
 
 class AdaptiveSigmoid(nn.Module):
@@ -71,17 +57,16 @@ class NeuralNetworkModular(nn.Module):
                 self.activation.append(activation)
 
         self.layers = nn.ModuleList(self.layers)
-        # print(self.layers)
         self.output_layer = nn.Linear(int(hidden_layer[-1][0]), output_features, device=device)
-
-        for layer in self.layers:
-            init.xavier_normal_(layer.weight)
 
         if last_activation == "lambda":
             self.last_activation = AdaptiveSigmoid()
         else:
             self.last_activation = last_activation
 
+        # layers initialization
+        for layer in self.layers:
+            init.xavier_normal_(layer.weight)
         init.xavier_normal_(self.output_layer.weight)
 
     def forward(self, x):
@@ -90,7 +75,6 @@ class NeuralNetworkModular(nn.Module):
         x = self.output_layer(x)
         if self.last_activation is not None:
             x = self.last_activation(x)
-
         return x
 
 
@@ -102,11 +86,11 @@ class GM_NN_Model:
     bias: bool = field(default=False, init=True)
     init_params: str = field(default="random", init=True)
     base_dir: str = field(init=True, default=check_base_dir(BASE_DATA_DIR))
-
     seed: int = field(default=42, init=True)
 
     gm_model: GaussianMixture = field(factory=GaussianMixture)
     nn_model: NeuralNet = NeuralNet(NeuralNetworkModular, nn.MSELoss)
+    nn_best_params: dict = field(factory=dict)
 
     def __init__(
         self,
@@ -142,7 +126,6 @@ class GM_NN_Model:
     def __attrs_post_init__(self):
         if self.seed is not None:
             torch.manual_seed(self.seed)
-
         # setup the Gaussian Mixture Model:
         self.gm_model = GaussianMixture(self.n_components, init_params=self.init_params, random_state=self.seed)
 
@@ -154,6 +137,7 @@ class GM_NN_Model:
         device: str or None = "cpu",
         save_filename: str or None = None,
         base_dir: str or None = None,
+        patience: int = 300,
     ):
         if device == "auto" or device == None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -179,6 +163,10 @@ class GM_NN_Model:
                 device=device,
                 module__device=device,
                 module__input_features=X.shape[1],
+                callbacks=[
+                    EpochScoring(scoring="r2", lower_is_better=False),
+                    EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
+                ]
             )
 
         elif search_type == "gridsearch":
@@ -189,9 +177,6 @@ class GM_NN_Model:
                 else:
                     new_dict[key] = value
 
-            total_train_count = len(list(product(*self.parameters.values()))) * 5
-            progress_bar = tqdm(total=total_train_count, desc="Training", disable=False, leave=True)
-
             nn_model_net = NeuralNet(
                 NeuralNetworkModular,
                 self.criterion[0],
@@ -199,7 +184,10 @@ class GM_NN_Model:
                 device=device,
                 module__device=device,
                 module__input_features=X.shape[1],
-                # callbacks=[ProgressBarCallback(pbar=progress_bar)],
+                callbacks=[
+                    EpochScoring(scoring="r2", lower_is_better=False),
+                    EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
+                ],
             )
 
             self.nn_model = GridSearchCV(
@@ -207,10 +195,9 @@ class GM_NN_Model:
                 new_dict,
                 refit="r2",
                 cv=5,
-                verbose=0,
+                verbose=3,
                 n_jobs=n_jobs,
-                # pre_dispatch=2,
-                scoring=["r2", "max_error", "explained_variance"],
+                scoring=["r2"],
             )
 
         # generate the id
@@ -231,8 +218,8 @@ class GM_NN_Model:
         # plt.scatter(X, Y)
         # plt.show()
 
-        # print(r2_score(Y, self.nn_model.predict(X.astype(np.float32))))
-        # print("datii", Y[0:10], X[0:10])
+        if search_type == "gridsearch":
+            self.nn_best_params = self.nn_model.best_params_
 
         return self.nn_model, Y
 

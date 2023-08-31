@@ -7,7 +7,7 @@ from scipy.stats import logistic, expon
 # ---
 from .utils import check_base_dir, generate_unique_id
 
-BASE_DATA_DIR = ["..", "..", "data_2"]
+BASE_DATA_DIR = ["..", "..", "data"]
 
 
 def save_dataset(X, file: str or None = None, base_dir: str or None = None):
@@ -31,6 +31,36 @@ def load_dataset(file: str = None, base_dir: str = None):
         return X, y
     else:
         return None, None
+
+
+def calculate_pdf(
+    type: str = "logistic",
+    params: dict = {"mean": 0.0, "scale": 1.0},
+    weight: float = 1.0,
+    random_state=False,
+    X_input=None,
+):
+    sample = 0
+    if type in ["logistic", "log"]:
+        mean, scale = params["mean"], params["scale"]
+        if X_input is not None:
+            pdf = weight * logistic.pdf(X_input, loc=mean, scale=scale)
+        else:
+            sample = random_state.logistic(mean, scale, size=1)
+            pdf = weight * logistic.pdf(sample[0], loc=mean, scale=scale)
+
+    elif type in ["exponential", "exp", "expon"]:
+        scale = params.get("scale") or params.get("mean") or params.get("rate")
+        if X_input is not None:
+            pdf = weight * expon.pdf(X_input, scale=scale)
+        else:
+            sample = random_state.exponential(scale=scale, size=1)
+            pdf = weight * expon.pdf(sample[0], scale=scale)
+
+    else:
+        raise ValueError("Invalid PDF type. Supported types: 'exponential', 'logistic'")
+
+    return sample, pdf
 
 
 @define(slots=True)
@@ -93,22 +123,11 @@ class PDF:
                 for i in range(n_samples):
                     mode = random_state.choice(len(params_dim), p=[elem["weight"] for elem in params_dim])
 
-                    if params_dim[mode]["type"] in ["logistic", "log"]:
-                        mean, scale = params_dim[mode]["mean"], params_dim[mode]["scale"]
-                        sample = random_state.logistic(mean, scale, size=1)
-                        fake_Y[i, d] += params_dim[mode]["weight"] * logistic.pdf(sample[0], loc=mean, scale=scale)
+                    sample, fake_Y1 = calculate_pdf(
+                        params_dim[mode]["type"], params_dim[mode], params_dim[mode]["weight"], random_state
+                    )
 
-                    elif params_dim[mode]["type"] in ["exponential", "exp", "expon"]:
-                        scale = (
-                            params_dim[mode].get("scale")
-                            or params_dim[mode].get("mean")
-                            or params_dim[mode].get("rate")
-                        )
-                        sample = random_state.exponential(scale=scale, size=1)
-                        fake_Y[i, d] += params_dim[mode]["weight"] * expon.pdf(sample[0], scale=scale)
-
-                    else:
-                        raise ValueError("Invalid PDF type. Supported types: 'exponential', 'logistic'")
+                    fake_Y[i, d] += fake_Y1
                     samples[i, d] = sample[0]
 
             self.training_X = np.array(samples)
@@ -141,7 +160,7 @@ class PDF:
             return self.test_X, self.test_Y
 
         else:
-            self.test_X = generate_points_in_grid(range_limit[0], range_limit[1], stepper, len(self.params))
+            self.test_X = generate_points_in_grid(range_limit[0], range_limit[1], stepper, dimensions=len(self.params))
             fake_Y = np.zeros((len(self.test_X), len(self.params)))
 
             for d, params_dim in enumerate(self.params):
@@ -149,15 +168,8 @@ class PDF:
                     pdf_type = pdf_info["type"]
                     weight = pdf_info["weight"]
 
-                    if pdf_type in ["logistic", "log"]:
-                        loc = pdf_info.get("mean")
-                        scale = pdf_info["scale"]
-                        fake_Y[:, d] += weight * logistic.pdf(self.test_X[:, d], loc=loc, scale=scale)
-                    elif pdf_type in ["exponential", "exp", "expon"]:
-                        scale = pdf_info.get("scale") or pdf_info.get("mean") or pdf_info.get("rate")
-                        fake_Y[:, d] += weight * expon.pdf(self.test_X[:, d], scale=scale)
-                    else:
-                        raise ValueError(f"Invalid PDF type: {pdf_type}")
+                    _, fake_Y1 = calculate_pdf(pdf_type, pdf_info, weight, X_input=self.test_X[:, d])
+                    fake_Y[:, d] += fake_Y1
 
             self.test_Y = fake_Y[:, 0]
             for d in range(1, len(self.params)):

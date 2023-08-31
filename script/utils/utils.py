@@ -4,10 +4,7 @@ import csv
 import os
 import hashlib
 
-# import sys
-# sys.path.append("..")
-
-BASE_RESULT_DIR = ["..", "..", "result_2"]
+BASE_RESULT_DIR = ["..", "..", "result"]
 
 
 def write_result(
@@ -27,17 +24,14 @@ def write_result(
     n_samples: int = 100,
     dimension: int = 1,
     base_dir=[BASE_RESULT_DIR, "CSV"],
+    **kwargs,
 ):
-    if best_params is not None and isinstance(best_params, dict):
-        # print(best_params, type(best_params))
-        epoch = best_params.get("max_epoch")
-    else:
-        epoch = "None"
-
     write_csv(
+        check_colomn="id",
         id=id,
         components=components,
         model=model_type,
+        pdf_type=pdf_type,
         samples=n_samples,
         dimension=dimension,
         r2_score=r2_score,
@@ -46,12 +40,11 @@ def write_result(
         EVS_score=evs_score,
         ISE_score=ise_score,
         k1_score=k1_score,
-        pdf_type=pdf_type,
-        epoch=epoch,
-        experiment_params=experiment_params,
         best_params=best_params,
+        experiment_params=experiment_params,
         log_name_file=log_name_file,
         base_dir=base_dir,
+        **kwargs,
     )
 
 
@@ -73,7 +66,7 @@ def plot_AllInOne(
     if pdf_predicted_gmm is not None:
         plt.plot(test_sample, pdf_predicted_gmm, label="Predicted PDF (GMM)", color="blue")
     if pdf_true is not None:
-        plt.plot(test_sample, pdf_true, label="True PDF (Exponential)", color="green", linestyle="--")
+        plt.plot(test_sample, pdf_true, label="True PDF", color="green", linestyle="--")
     if pdf_predicted_mlp is not None:
         plt.plot(
             test_sample,
@@ -82,7 +75,7 @@ def plot_AllInOne(
             color="red",
         )
 
-    plt.hist(training_sample, bins=bins, density=density, alpha=0.5, label="Data", color="gray")
+    plt.hist(training_sample, bins=bins, density=density, alpha=0.5, label="Data", color="dimgray")
     plt.title(title)
     plt.xlabel("X")
     plt.ylabel("Probability Density")
@@ -187,6 +180,7 @@ def check_base_dir(*args):
 def write_csv(
     log_name_file="test.csv",
     base_dir="",
+    check_colomn=False,
     **kwargs,
 ):
     """
@@ -212,6 +206,16 @@ def write_csv(
         with open(full_path, "w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(log_title)
+
+    if check_colomn is not False:
+        with open(full_path, "r") as csv_file:
+            csv_reader = csv.DictReader(csv_file)
+            for row in csv_reader:
+                if (
+                    row[check_colomn.replace("_", " ").title()] == kwargs.get(check_colomn)
+                    and kwargs.get(check_colomn) in log_entry
+                ):
+                    return
 
     with open(full_path, "a", newline="") as file:
         writer = csv.writer(file)
