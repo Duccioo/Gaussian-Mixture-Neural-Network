@@ -14,9 +14,14 @@ def save_dataset(X, file: str or None = None, base_dir: str or None = None):
     if base_dir is not None and os.path.exists(base_dir) and file is not None and not os.path.isfile(file):
         file = os.path.join(base_dir, file)
 
-    if file is not None:
-        print(f"Saving on file { file }...")
-        np.save(file, X, allow_pickle=True)
+    if isinstance(X, tuple) and len(X) > 1:
+        if file is not None:
+            print(f"Saving on file { file }...")
+            np.savez(file, X=X[0], y=X[1], allow_pickle=True)
+    else:
+        if file is not None:
+            print(f"Saving on file { file }...")
+            np.save(file, X, allow_pickle=True)
 
 
 def load_dataset(file: str = None, base_dir: str = None):
@@ -26,8 +31,10 @@ def load_dataset(file: str = None, base_dir: str = None):
     if file is not None and os.path.isfile(file):
         print("loading from file")
         dataset = np.load(file, allow_pickle=True)
-        X = dataset[:][0]
-        y = dataset[:][1]
+
+        X = dataset["X"]
+        y = dataset["y"]
+
         return X, y
     else:
         return None, None
@@ -86,12 +93,12 @@ class PDF:
         elif isinstance(params[0], list) == False:
             params = [params]
 
-        self.dimension = len(params)
+        dimension = len(params)
 
         for d, dim in enumerate(params):
             if len(dim) == 1 and dim[0].get("weight") == None:
                 params[d][0]["weight"] = 1
-        self.__attrs_init__(params)
+        self.__attrs_init__(params, dimension)
 
     def generate_training(self, n_samples, seed=None, save_filename=None, base_dir=None):
         # --- saving part ---
@@ -104,7 +111,9 @@ class PDF:
 
         if save_filename is not None:
             save_filename_t = save_filename.split(".")[0]
-            save_filename_t = save_filename_t + "_" + self.unique_id_training + ".npy"
+            save_filename_t = (
+                save_filename_t + "_" + self.unique_id_training + str(".npy" if self.dimension == 1 else ".npz")
+            )
             training_X, training_Y = load_dataset(file=save_filename_t, base_dir=base_dir)
 
         if save_filename is not None and training_X is not None and training_Y is not None:
@@ -139,6 +148,7 @@ class PDF:
             self.training_Y = self.training_Y.reshape(self.training_Y.shape[0], 1)
 
             if save_filename is not None:
+                print(self.training_X.shape, self.training_Y.shape)
                 save_dataset((self.training_X, self.training_Y), save_filename_t, base_dir=base_dir)
             return self.training_X, self.training_Y
 
@@ -152,7 +162,9 @@ class PDF:
 
         if save_filename is not None:
             save_filename_t = save_filename.split(".")[0]
-            save_filename_t = save_filename_t + "_" + self.unique_id_test + ".npy"
+            save_filename_t = (
+                save_filename_t + "_" + self.unique_id_test + str(".npy" if self.dimension == 1 else ".npz")
+            )
             test_X, test_Y = load_dataset(file=save_filename_t, base_dir=base_dir)
 
         if save_filename is not None and test_X is not None and test_Y is not None:

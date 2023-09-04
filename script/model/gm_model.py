@@ -60,16 +60,20 @@ def generate_target_MLP(gm_model, X, bias: bool = False, save_filename: str or N
         X, Y = load_dataset(file=save_filename)
     else:
         Y = []
+        # print(X.shape)
         for indx, sample in enumerate(X):
             if bias == False:
-                X_1 = np.delete(X, indx).reshape(-1, 1)
+                X_1 = np.delete(X, indx, axis=0)
+
             else:
                 X_1 = X
 
             gm_model.fit(X_1)
-
-            Y.append(np.exp(gm_model.score_samples(sample.reshape(-1, X.shape[1]))))
+            Y.append(np.exp(gm_model.score_samples(sample.reshape(-1, X_1.shape[1]))))
         Y = np.array(Y).reshape(-1, 1)
+
+        print(Y.shape)
+        print(X.shape)
 
         if save_filename is not None:
             save_dataset((X, Y), save_filename)
