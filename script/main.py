@@ -48,6 +48,8 @@ def test_and_log(
         pdf_predicted = np.exp(
             model.score_samples(X)
         )  # with .score_samples we get the log-likelihood over all the samples
+        # print(X.shape)
+        # print(pdf_predicted[0:10])
 
     else:
         # predict the pdf with GMM + MLP
@@ -70,8 +72,8 @@ def test_and_log(
             mse_score=round(np.sqrt(mean_squared_error(y_true, pdf_predicted)), round_number),
             max_error_score=round(max_error(y_true, pdf_predicted), round_number),
             evs_score=round(explained_variance_score(y_true, pdf_predicted), round_number),
-            ise_score=round(calculate_ise(y_true, pdf_predicted), round_number),
-            k1_score=round(calculate_kl_divergence(y_true, pdf_predicted), round_number),
+            # ise_score=round(calculate_ise(y_true, pdf_predicted), round_number),
+            # k1_score=round(calculate_kl_divergence(y_true, pdf_predicted), round_number),
             epoch=epoch,
             pdf_param=pdf,
             id_dataset=id_dataset,
@@ -99,39 +101,51 @@ def main():
     n_samples = args.samples  # number of samples to generate from the exp distribution
     stepper_x_test = 0.01  # step to take on the limit_test for generate the test data
     init_param_gmm = "random"  # the initialization of the mean vector for the base GMM
-    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model
+    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model
     max_iter = 100  # the maximum number of iterations for training the GMMs
     n_init = 10  # the number of initial iterations for training the GMMs
     offset_limit = 0.1
 
     mlp_params = {
         "criterion": [nn.HuberLoss],
-        "max_epochs": [50],
-        "batch_size": [8],
-        "lr": [0.003],
+        "max_epochs": [50, 1000, 5000],
+        "batch_size": [8, 32, 16],
+        "lr": [0.002, 0.002],
         "module__last_activation": ["lambda"],
         "module__hidden_layer": [
             # [(128, nn.ReLU())],
-            # [(64, nn.Tanh())],
-            [(80, nn.ReLU()), (160, nn.ReLU())],
-            # [(16, nn.Tanh()), (32, nn.Tanh()), (64, nn.ReLU())],
-            # [(16, nn.LeakyReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
-            [(32, nn.ReLU()), (16, nn.Tanh()), (8, nn.ReLU())],
+            [(16, nn.ReLU()), (32, nn.ReLU()), (16, nn.ReLU()), (8, nn.ReLU())],
+            [(128, nn.ReLU()), (128, nn.Tanh())],
+            [(128, nn.ReLU()), (128, nn.ReLU()), (128, nn.ReLU())],
+            [(64, nn.Tanh()), (32, nn.Tanh()), (128, nn.ReLU())],
+            [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
+            [(128, nn.ReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
         ],
         "optimizer": [optim.Adam],
         # "optimizer__weight_decay": [0.001],
-        "module__dropout": [0.5],
+        "module__dropout": [0.3, 0.1],
     }
 
     # generate the sample from a known distribution:
     pdf_exponential = PDF({"type": "exponential", "mean": 0.6})
+
     pdf_multimodal = PDF(
         [
-            {"type": "logistic", "mean": 20, "scale": 0.5, "weight": 0.4},
-            {"type": "logistic", "mean": 10, "scale": 4, "weight": 0.4},
-            {"type": "logistic", "mean": 17, "scale": 1, "weight": 0.2},
+            [
+                {"type": "logistic", "mean": 20, "scale": 0.5, "weight": 0.4},
+                {"type": "logistic", "mean": 10, "scale": 4, "weight": 0.4},
+                {"type": "logistic", "mean": 30, "scale": 1, "weight": 0.2},
+            ],
         ]
     )
+
+    # pdf_multimodal.generate_training(100, 112311)
+    # pdf_multimodal.generate_test((0,10), 0.1)
+
+    # pdf_multimodal.test_X
+    # pdf_multimodal.test_Y
+    # pdf_multimodal.training_X
+    # pdf_multimodal.training_Y
 
     if args.pdf in ["exponential", "exp"]:
         pdf = pdf_exponential
@@ -139,13 +153,13 @@ def main():
         pdf = pdf_multimodal
 
     # sample the data from a known distribution
-    x_training, y_training = pdf.generate_training(n_samples=n_samples, save_filename=f"train.npy", seed=seed)
+    x_training, y_training = pdf.generate_training(n_samples=n_samples, save_filename=f"train", seed=seed)
 
     # generate the data for plotting the pdf
 
     limit_test = (np.min(x_training) - offset_limit, np.max(x_training) + offset_limit)
     x_test, y_test = pdf.generate_test(
-        save_filename=f"test.npy",
+        save_filename=f"test",
         range_limit=limit_test,
         stepper=stepper_x_test,
     )
@@ -211,7 +225,7 @@ def main():
         search_type="auto" if args.gridsearch == True else None,
         n_jobs=args.jobs,
         device=device,
-        save_filename=f"train_mlp{'_Biased' if args.bias == True else '' }_{init_param_mlp}_C{n_components}.npy",
+        save_filename=f"train_mlp{'_Biased' if args.bias == True else '' }_{init_param_mlp}_C{n_components}",
     )
 
     if args.gridsearch == True:
@@ -246,13 +260,15 @@ def main():
             pdf_predicted_mlp=pdf_predicted_mlp,
             pdf_predicted_gmm=pdf_predicted_gmm,
             pdf_true=y_test,
-            save=True,
+            save=False,
             name=f"result_G-{id_gmm}_M-{id_mlp}_C{n_components}",
             title=f"PDF estimation with {n_components} components",
             show=args.show,
         )
     else:
         print(f"impossible to plot on a {pdf.dimension} dimensional space")
+
+    print(f"id for gmm {id_gmm} || id for mlp: {id_mlp}")
 
 
 if __name__ == "__main__":
