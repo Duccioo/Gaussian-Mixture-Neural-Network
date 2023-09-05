@@ -10,6 +10,7 @@ from attrs import define, field
 from sklearn.mixture import GaussianMixture
 import os
 
+import matplotlib.pyplot as plt
 
 # ---
 from utils.utils import check_base_dir, generate_unique_id
@@ -127,7 +128,7 @@ class GM_NN_Model:
         if self.seed is not None:
             torch.manual_seed(self.seed)
         # setup the Gaussian Mixture Model:
-        self.gm_model = GaussianMixture(self.n_components, init_params=self.init_params, random_state=self.seed)
+        self.gm_model = GaussianMixture(self.n_components, init_params=self.init_params, random_state=self.seed, n_init=10, max_iter=100)
 
     def fit(
         self,
@@ -137,7 +138,7 @@ class GM_NN_Model:
         device: str or None = "cpu",
         save_filename: str or None = None,
         base_dir: str or None = None,
-        patience: int = 300,
+        patience: int = 1000,
     ):
         if device == "auto" or device == None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -163,10 +164,10 @@ class GM_NN_Model:
                 device=device,
                 module__device=device,
                 module__input_features=X.shape[1],
-                callbacks=[
-                    EpochScoring(scoring="r2", lower_is_better=False),
-                    EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
-                ]
+                # callbacks=[
+                #     EpochScoring(scoring="r2", lower_is_better=False),
+                #     EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
+                # ]
             )
 
         elif search_type == "gridsearch":
