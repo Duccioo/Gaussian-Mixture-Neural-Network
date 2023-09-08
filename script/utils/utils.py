@@ -4,7 +4,7 @@ import csv
 import os
 import hashlib
 
-BASE_RESULT_DIR = ["..", "..", "result"]
+BASE_RESULT_DIR = ["..", "..", "result_2"]
 
 
 def write_result(
@@ -53,6 +53,7 @@ def plot_AllInOne(
     test_sample,
     pdf_predicted_gmm=None,
     pdf_true=None,
+    mlp_target=None,
     bins=32,
     density=True,
     save=False,
@@ -73,6 +74,12 @@ def plot_AllInOne(
             pdf_predicted_mlp,
             label="Predicted PDF (MLP)",
             color="red",
+        )
+    if mlp_target is not None:
+        plt.scatter(
+            training_sample,
+            mlp_target,
+            label="Target (MLP)",
         )
 
     plt.hist(training_sample, bins=bins, density=density, alpha=0.5, label="Data", color="dimgray")

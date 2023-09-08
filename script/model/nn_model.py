@@ -92,6 +92,8 @@ class GM_NN_Model:
     gm_model: GaussianMixture = field(factory=GaussianMixture)
     nn_model: NeuralNet = NeuralNet(NeuralNetworkModular, nn.MSELoss)
     nn_best_params: dict = field(factory=dict)
+    gmm_target_x: np.ndarray = field(init=True, default=np.array(None))
+    gmm_target_y: np.ndarray = field(init=True, default=np.array(None))
 
     def __init__(
         self,
@@ -128,7 +130,14 @@ class GM_NN_Model:
         if self.seed is not None:
             torch.manual_seed(self.seed)
         # setup the Gaussian Mixture Model:
-        self.gm_model = GaussianMixture(self.n_components, init_params=self.init_params, random_state=self.seed, n_init=10, max_iter=100)
+
+        self.gm_model = GaussianMixture(
+            n_components=self.n_components,
+            init_params=self.init_params,
+            random_state=self.seed,
+            n_init=10,
+            max_iter=100,
+        )
 
     def fit(
         self,
@@ -167,7 +176,7 @@ class GM_NN_Model:
                 # callbacks=[
                 #     EpochScoring(scoring="r2", lower_is_better=False),
                 #     EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
-                # ]
+                # ],
             )
 
         elif search_type == "gridsearch":
@@ -185,10 +194,10 @@ class GM_NN_Model:
                 device=device,
                 module__device=device,
                 module__input_features=X.shape[1],
-                callbacks=[
-                    EpochScoring(scoring="r2", lower_is_better=False),
-                    EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
-                ],
+                # callbacks=[
+                #     EpochScoring(scoring="r2", lower_is_better=False),
+                #     EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
+                # ],
             )
 
             self.nn_model = GridSearchCV(
@@ -210,19 +219,21 @@ class GM_NN_Model:
 
         if save_filename is not None:
             save_filename = save_filename.split(".")[0]
-            save_filename = save_filename + "_" + unique_id + ".npy"
+            save_filename = save_filename + "_" + unique_id + ".npz"
             save_filename = os.path.join(base_dir, save_filename)
 
-        _, Y = generate_target_MLP(gm_model=self.gm_model, X=X, save_filename=save_filename, bias=self.bias)
+        self.gmm_target_x, self.gmm_target_y = generate_target_MLP(
+            gm_model=self.gm_model, X=X, save_filename=save_filename, bias=self.bias
+        )
 
-        self.nn_model.fit(torch.tensor(X, dtype=torch.float32), torch.tensor(Y, dtype=torch.float32))
-        # plt.scatter(X, Y)
-        # plt.show()
+        self.nn_model.fit(torch.tensor(X, dtype=torch.float32), torch.tensor(self.gmm_target_y, dtype=torch.float32))
 
         if search_type == "gridsearch":
             self.nn_best_params = self.nn_model.best_params_
+        else:
+            self.nn_best_params = new_dict
 
-        return self.nn_model, Y
+        return self.nn_model, self.gmm_target_y
 
     def predict(self, X):
         return self.nn_model.predict(torch.tensor(X, dtype=torch.float32))

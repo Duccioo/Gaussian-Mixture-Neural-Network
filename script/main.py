@@ -56,6 +56,7 @@ def test_and_log(
         pdf_predicted = model.predict(X.astype(np.float32))
 
     round_number = 3
+    r2_value = round(r2_score(y_true, pdf_predicted), round_number)
 
     if write_to_csv == True:
         # MLP scoring:
@@ -68,18 +69,18 @@ def test_and_log(
             best_params=best_params,
             n_samples=n_samples,
             dimension=dimension,
-            r2_score=round(r2_score(y_true, pdf_predicted), round_number),
+            r2_score=r2_value,
             mse_score=round(np.sqrt(mean_squared_error(y_true, pdf_predicted)), round_number),
             max_error_score=round(max_error(y_true, pdf_predicted), round_number),
             evs_score=round(explained_variance_score(y_true, pdf_predicted), round_number),
-            # ise_score=round(calculate_ise(y_true, pdf_predicted), round_number),
-            # k1_score=round(calculate_kl_divergence(y_true, pdf_predicted), round_number),
+            ise_score=round(calculate_ise(y_true, pdf_predicted), round_number),
+            k1_score=round(calculate_kl_divergence(y_true, pdf_predicted), round_number),
             epoch=epoch,
             pdf_param=pdf,
             id_dataset=id_dataset,
         )
 
-    return pdf_predicted
+    return (pdf_predicted, r2_value)
 
 
 def main():
@@ -90,6 +91,7 @@ def main():
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--components", type=int, default=4)
     parser.add_argument("--show", action="store_true", default=False)
+    parser.add_argument("--save", action="store_true", default=False)
     parser.add_argument("--gpu", action="store_true", default=False)
     parser.add_argument("--bias", action="store_true", default=False)
     parser.add_argument("--gridsearch", action="store_true", default=False)
@@ -100,22 +102,23 @@ def main():
     n_components = args.components  # number of components for the Gaussian Mixture
     n_samples = args.samples  # number of samples to generate from the exp distribution
     stepper_x_test = 0.01  # step to take on the limit_test for generate the test data
-    init_param_gmm = "random"  # the initialization of the mean vector for the base GMM
-    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model
+    init_param_gmm = "random"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
+    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
     max_iter = 100  # the maximum number of iterations for training the GMMs
     n_init = 10  # the number of initial iterations for training the GMMs
-    offset_limit = 0.1
+    offset_limit = 0.0
 
     mlp_params = {
         "criterion": [nn.HuberLoss],
-        "max_epochs": [50, 1000, 5000],
-        "batch_size": [8, 32, 16],
-        "lr": [0.002, 0.002],
+        "max_epochs": [60, 40, 50],
+        "batch_size": [4, 8],
+        "lr": [0.001, 0.0015, 0.002, 0.005],
         "module__last_activation": ["lambda"],
         "module__hidden_layer": [
-            # [(128, nn.ReLU())],
-            [(16, nn.ReLU()), (32, nn.ReLU()), (16, nn.ReLU()), (8, nn.ReLU())],
+            [(64, nn.ReLU())],
+            [(16, nn.ReLU()), (32, nn.ReLU()), (32, nn.ReLU()), (16, nn.ReLU())],
             [(128, nn.ReLU()), (128, nn.Tanh())],
+            [(80, nn.ReLU()), (160, nn.ReLU())],
             [(128, nn.ReLU()), (128, nn.ReLU()), (128, nn.ReLU())],
             [(64, nn.Tanh()), (32, nn.Tanh()), (128, nn.ReLU())],
             [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
@@ -156,7 +159,6 @@ def main():
     x_training, y_training = pdf.generate_training(n_samples=n_samples, save_filename=f"train", seed=seed)
 
     # generate the data for plotting the pdf
-
     limit_test = (np.min(x_training) - offset_limit, np.max(x_training) + offset_limit)
     x_test, y_test = pdf.generate_test(
         save_filename=f"test",
@@ -167,7 +169,6 @@ def main():
     id_dataset = generate_unique_id([x_training, y_training, x_test, y_test], lenght=5)
 
     # ------------------------ GMM: --------------------------
-
     id_gmm = generate_unique_id(
         [x_training, x_test, y_test, seed, n_components, n_samples, init_param_gmm, max_iter, n_init], lenght=5
     )
@@ -179,7 +180,7 @@ def main():
     model_gmm.fit(x_training)
 
     # predict the pdf with GMM
-    pdf_predicted_gmm = test_and_log(
+    pdf_predicted_gmm, r2_gmm = test_and_log(
         model_gmm,
         X=x_test,
         y_true=y_test,
@@ -234,7 +235,7 @@ def main():
         epoch = model_mlp.nn_model.history[-1, "epoch"]
 
     # train the model and predict the pdf over the test set
-    pdf_predicted_mlp = test_and_log(
+    pdf_predicted_mlp, r2_mlp = test_and_log(
         model_mlp,
         X=x_test,
         y_true=y_test,
@@ -257,10 +258,11 @@ def main():
         plot_AllInOne(
             x_training,
             x_test,
+            mlp_target=model_mlp.gmm_target_y,
             pdf_predicted_mlp=pdf_predicted_mlp,
             pdf_predicted_gmm=pdf_predicted_gmm,
             pdf_true=y_test,
-            save=False,
+            save=args.save,
             name=f"result_G-{id_gmm}_M-{id_mlp}_C{n_components}",
             title=f"PDF estimation with {n_components} components",
             show=args.show,
@@ -269,6 +271,7 @@ def main():
         print(f"impossible to plot on a {pdf.dimension} dimensional space")
 
     print(f"id for gmm {id_gmm} || id for mlp: {id_mlp}")
+    print(f"R2 GMM -> {r2_gmm} \nR2 MLP -> {r2_mlp}")
 
 
 if __name__ == "__main__":

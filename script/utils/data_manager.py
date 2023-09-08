@@ -3,7 +3,6 @@ import os
 from attrs import define, field
 from scipy.stats import logistic, expon
 
-
 # ---
 from .utils import check_base_dir, generate_unique_id
 
@@ -16,11 +15,11 @@ def save_dataset(X, file: str or None = None, base_dir: str or None = None):
 
     if isinstance(X, tuple) and len(X) > 1:
         if file is not None:
-            print(f"Saving on file { file }...")
-            np.savez(file, X=X[0], y=X[1], allow_pickle=True)
+            print(f"Saving on file { file }")
+            np.savez(file, input=X[0], output=X[1], allow_pickle=True)
     else:
         if file is not None:
-            print(f"Saving on file { file }...")
+            print(f"Saving on file { file }")
             np.save(file, X, allow_pickle=True)
 
 
@@ -32,8 +31,8 @@ def load_dataset(file: str = None, base_dir: str = None):
         print("loading from file")
         dataset = np.load(file, allow_pickle=True)
 
-        X = dataset["X"]
-        y = dataset["y"]
+        X = dataset["input"]
+        y = dataset["output"]
 
         return X, y
     else:
@@ -111,9 +110,7 @@ class PDF:
 
         if save_filename is not None:
             save_filename_t = save_filename.split(".")[0]
-            save_filename_t = (
-                save_filename_t + "_" + self.unique_id_training + str(".npy" if self.dimension == 1 else ".npz")
-            )
+            save_filename_t = save_filename_t + "_" + self.unique_id_training + ".npz"
             training_X, training_Y = load_dataset(file=save_filename_t, base_dir=base_dir)
 
         if save_filename is not None and training_X is not None and training_Y is not None:
@@ -148,7 +145,6 @@ class PDF:
             self.training_Y = self.training_Y.reshape(self.training_Y.shape[0], 1)
 
             if save_filename is not None:
-                print(self.training_X.shape, self.training_Y.shape)
                 save_dataset((self.training_X, self.training_Y), save_filename_t, base_dir=base_dir)
             return self.training_X, self.training_Y
 
@@ -162,9 +158,7 @@ class PDF:
 
         if save_filename is not None:
             save_filename_t = save_filename.split(".")[0]
-            save_filename_t = (
-                save_filename_t + "_" + self.unique_id_test + str(".npy" if self.dimension == 1 else ".npz")
-            )
+            save_filename_t = save_filename_t + "_" + self.unique_id_test + ".npz"
             test_X, test_Y = load_dataset(file=save_filename_t, base_dir=base_dir)
 
         if save_filename is not None and test_X is not None and test_Y is not None:
@@ -208,17 +202,37 @@ def generate_points_in_grid(start, end, step, dimensions):
 if __name__ == "__main__":
     prova = PDF(
         [
-            {"type": "log", "mean": 5, "scale": 1, "weight": 0.3},
-            {"type": "log", "mean": 15, "scale": 0.5, "weight": 0.4},
-            {"type": "log", "mean": 30, "scale": 2, "weight": 0.3},
+            [
+                {"type": "logistic", "mean": 20, "scale": 0.5, "weight": 0.4},
+                {"type": "logistic", "mean": 10, "scale": 4, "weight": 0.4},
+                {"type": "logistic", "mean": 17, "scale": 1, "weight": 0.2},
+            ]
         ]
     )
 
-    prova.generate_training(5000, seed=42, save_filename="prova_training_2.npy")
-    prova.generate_test((0, 10), save_filename="prova_test_2.npy")
+    prova.generate_training(
+        5000,
+        seed=42,
+    )
+    prova.generate_test(
+        (-10, 50),
+    )
 
     X = prova.training_X
     y = prova.training_Y
 
     print("X =", X[0:5])
     print("y =", y[0:5], "\n")
+
+    plt.plot(
+        prova.test_X,
+        prova.test_Y,
+        label="Test PDF (MLP)",
+        color="green",
+    )
+    plt.hist(prova.training_X, bins=32, density=True, alpha=0.5, label="Data", color="dimgray")
+    plt.title("Testing plot")
+    plt.xlabel("X")
+    plt.ylabel("Probability Density")
+    plt.legend()
+    plt.show()
