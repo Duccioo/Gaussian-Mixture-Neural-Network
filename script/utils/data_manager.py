@@ -57,11 +57,19 @@ def calculate_pdf(
 
     elif type in ["exponential", "exp", "expon"]:
         scale = params.get("scale") or params.get("mean") or params.get("rate")
+        negative = 1
+        if scale < 0:
+            scale = abs(scale)
+            negative = -1
+
+        shift = params.get("offset") or params.get("shift") or params.get("translation")
+        if shift == None or shift == False:
+            shift = 0
         if X_input is not None:
-            pdf = weight * expon.pdf(X_input, scale=scale)
+            pdf = weight * expon.pdf(negative * X_input, loc=shift, scale=scale)
         else:
-            sample = random_state.exponential(scale=scale, size=1)
-            pdf = weight * expon.pdf(sample[0], scale=scale)
+            sample = negative * (random_state.exponential(scale=scale, size=1) + shift)
+            pdf = weight * expon.pdf(negative * sample[0], scale=scale, loc=-shift)
 
     else:
         raise ValueError("Invalid PDF type. Supported types: 'exponential', 'logistic'")
@@ -99,7 +107,9 @@ class PDF:
                 params[d][0]["weight"] = 1
         self.__attrs_init__(params, dimension)
 
-    def generate_training(self, n_samples, seed=None, save_filename=None, base_dir=None):
+    def generate_training(
+        self, n_samples, seed=None, save_filename=None, base_dir=None, scope=(-float("inf"), float("inf"))
+    ):
         # --- saving part ---
         # generate the id
         self.unique_id_training = generate_unique_id([self.params, n_samples, seed], 5)
@@ -130,8 +140,18 @@ class PDF:
                     mode = random_state.choice(len(params_dim), p=[elem["weight"] for elem in params_dim])
 
                     sample, fake_Y1 = calculate_pdf(
-                        params_dim[mode]["type"], params_dim[mode], params_dim[mode]["weight"], random_state
+                        params_dim[mode]["type"],
+                        params_dim[mode],
+                        params_dim[mode]["weight"],
+                        random_state,
                     )
+                    while sample < scope[0] or sample > scope[1]:
+                        sample, fake_Y1 = calculate_pdf(
+                            params_dim[mode]["type"],
+                            params_dim[mode],
+                            params_dim[mode]["weight"],
+                            random_state,
+                        )
 
                     fake_Y[i, d] += fake_Y1
                     samples[i, d] = sample[0]
