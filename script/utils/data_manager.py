@@ -244,15 +244,15 @@ if __name__ == "__main__":
     print("X =", X[0:5])
     print("y =", y[0:5], "\n")
 
-    plt.plot(
-        prova.test_X,
-        prova.test_Y,
-        label="Test PDF (MLP)",
-        color="green",
-    )
-    plt.hist(prova.training_X, bins=32, density=True, alpha=0.5, label="Data", color="dimgray")
-    plt.title("Testing plot")
-    plt.xlabel("X")
-    plt.ylabel("Probability Density")
-    plt.legend()
-    plt.show()
+    # plt.plot(
+    #     prova.test_X,
+    #     prova.test_Y,
+    #     label="Test PDF (MLP)",
+    #     color="green",
+    # )
+    # plt.hist(prova.training_X, bins=32, density=True, alpha=0.5, label="Data", color="dimgray")
+    # plt.title("Testing plot")
+    # plt.xlabel("X")
+    # plt.ylabel("Probability Density")
+    # plt.legend()
+    # plt.show()
