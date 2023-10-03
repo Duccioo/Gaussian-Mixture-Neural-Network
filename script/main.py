@@ -102,7 +102,7 @@ def main():
     n_components = args.components  # number of components for the Gaussian Mixture
     n_samples = args.samples  # number of samples to generate from the exp distribution
     stepper_x_test = 0.01  # step to take on the limit_test for generate the test data
-    init_param_gmm = "random"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
+    init_param_gmm = "kmeans"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
     init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
     max_iter = 100  # the maximum number of iterations for training the GMMs
     n_init = 10  # the number of initial iterations for training the GMMs
@@ -110,12 +110,12 @@ def main():
 
     mlp_params = {
         "criterion": [nn.HuberLoss],
-        "max_epochs": [60, 40, 50],
-        "batch_size": [4, 8],
-        "lr": [0.001, 0.0015, 0.002, 0.005],
+        "max_epochs": [10, 100, 1000],
+        "batch_size": [4, 8, 16],
+        "lr": [0.001, 0.003],
         "module__last_activation": ["lambda"],
         "module__hidden_layer": [
-            [(64, nn.ReLU())],
+            [(16, nn.ReLU())],
             [(16, nn.ReLU()), (32, nn.ReLU()), (32, nn.ReLU()), (16, nn.ReLU())],
             [(128, nn.ReLU()), (128, nn.Tanh())],
             [(80, nn.ReLU()), (160, nn.ReLU())],
@@ -135,9 +135,10 @@ def main():
     pdf_multimodal = PDF(
         [
             [
-                {"type": "logistic", "mean": 20, "scale": 0.5, "weight": 0.4},
-                {"type": "logistic", "mean": 10, "scale": 4, "weight": 0.4},
-                {"type": "logistic", "mean": 30, "scale": 1, "weight": 0.2},
+                {"type": "exponential", "rate": -1, "weight": 0.2},
+                {"type": "logistic", "mean": 4, "scale": 0.8, "weight": 0.25},
+                {"type": "logistic", "mean": 5.5, "scale": 0.7, "weight": 0.3},
+                {"type": "exponential", "rate": -10, "scale": 0.5, "weight": 0.25},
             ],
         ]
     )

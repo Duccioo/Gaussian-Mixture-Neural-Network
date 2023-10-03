@@ -50,7 +50,9 @@ def calculate_pdf(
     if type in ["logistic", "log"]:
         mean, scale = params["mean"], params["scale"]
         if X_input is not None:
-            pdf = weight * logistic.pdf(X_input, loc=mean, scale=scale)
+            # pdf = weight * logistic.pdf(X_input, loc=mean, scale=scale)
+            z = np.exp(-(X_input - mean) / scale)
+            pdf = weight * (z / scale) * np.exp(-z)
         else:
             sample = random_state.logistic(mean, scale, size=1)
             pdf = weight * logistic.pdf(sample[0], loc=mean, scale=scale)
@@ -67,14 +69,46 @@ def calculate_pdf(
             shift = 0
         if X_input is not None:
             pdf = weight * expon.pdf(negative * X_input, loc=shift, scale=scale)
+            # pdf = weight * np.exp(scale * X_input + shift)
         else:
             sample = negative * (random_state.exponential(scale=scale, size=1) + shift)
             pdf = weight * expon.pdf(negative * sample[0], scale=scale, loc=-shift)
+            # pdf = weight * np.exp(scale * sample[0] + shift)
 
     else:
         raise ValueError("Invalid PDF type. Supported types: 'exponential', 'logistic'")
 
     return sample, pdf
+
+
+def calculate_pdf_from_file(filename, params, training_size=400):
+    # Leggi i campioni dal file
+    with open(filename, "r") as file:
+        lines = file.readlines()
+        samples = [float(line.strip()) for line in lines]
+
+    # Crea un array NumPy
+    test_X = np.array(samples[0:training_size])
+    test_X = test_X.reshape((test_X.shape[0], 1))
+    print(test_X.shape)
+    fake_Y = np.zeros((len(test_X), len(params)))
+
+    for d, params_dim in enumerate(params):
+        for pdf_info in params_dim:
+            pdf_type = pdf_info["type"]
+            weight = pdf_info["weight"]
+
+            _, fake_Y1 = calculate_pdf(pdf_type, pdf_info, weight, X_input=test_X[:, d])
+            fake_Y[:, d] += fake_Y1
+
+    test_Y = fake_Y[:, 0]
+    for d in range(1, len(params)):
+        test_Y *= fake_Y[:, d]
+
+    test_Y = test_Y.reshape((test_Y.shape[0], 1))
+
+    save_dataset((test_X, test_Y), "training_prof_" + str(training_size) + ".npz", base_dir="")
+    return test_X, test_Y
 
 
 @define(slots=True)
