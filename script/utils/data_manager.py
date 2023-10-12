@@ -81,8 +81,8 @@ def calculate_pdf(
     return sample, pdf
 
 
-def calculate_pdf_from_file(filename, params, training_size=400):
-    # Leggi i campioni dal file
+def calculate_pdf_from_file(filename, params, dataset_filename="training_prof_", training_size=400):
+    # Leggi i campioni dal files
     with open(filename, "r") as file:
         lines = file.readlines()
         samples = [float(line.strip()) for line in lines]
@@ -107,7 +107,7 @@ def calculate_pdf_from_file(filename, params, training_size=400):
 
     test_Y = test_Y.reshape((test_Y.shape[0], 1))
 
-    save_dataset((test_X, test_Y), "training_prof_" + str(training_size) + ".npz", base_dir="")
+    save_dataset((test_X, test_Y), dataset_filename + str(training_size) + ".npz", base_dir="")
     return test_X, test_Y
 
 
@@ -227,7 +227,7 @@ class PDF:
                 for pdf_info in params_dim:
                     pdf_type = pdf_info["type"]
                     weight = pdf_info["weight"]
-
+                    
                     _, fake_Y1 = calculate_pdf(pdf_type, pdf_info, weight, X_input=self.test_X[:, d])
                     fake_Y[:, d] += fake_Y1
 

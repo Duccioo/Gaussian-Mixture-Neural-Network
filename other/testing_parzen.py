@@ -16,7 +16,7 @@ def parzen_window(x, data, h):
 # Generazione di dati da una PDF esponenziale
 np.random.seed(42)
 data = np.random.exponential(scale=1.0, size=1000)
-
+ 
 # Parametri per la finestra di Parzen
 h = 0.2  # Larghezza della finestra
 
