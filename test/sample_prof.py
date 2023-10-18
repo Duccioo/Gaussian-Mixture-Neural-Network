@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 from script.utils import PDF, save_dataset, calculate_pdf
 
 
@@ -29,13 +30,13 @@ def calculate_pdf_from_file(filename, params, training_size=400):
 
     test_Y = test_Y.reshape((test_Y.shape[0], 1))
 
-    save_dataset((test_X, test_Y), "training_prof_" + str(training_size) + ".npz", base_dir="")
+    # save_dataset((test_X, test_Y), "training_prof_" + str(training_size) + ".npz", base_dir="")
     return test_X, test_Y
 
 
 if __name__ == "__main__":
     # Nome del file di input
-    file_name = "data/randomized_dataset[1254].txt"
+    file_name = os.path.join("data", "default", "randomized_dataset[1254].txt")
 
     # Leggi i campioni dal file
     with open(file_name, "r") as file:
@@ -63,16 +64,29 @@ if __name__ == "__main__":
     )
     # limit_test = (np.min(pdf.training_X) - offset_limit, np.max(pdf.training_X) + offset_limit)
     limit_test = (0 - offset_limit, 10 + offset_limit)
-    pdf.generate_test(range_limit=limit_test, stepper=0.1, save_filename="test_prof.npz", base_dir="")
+    pdf.generate_test(range_limit=limit_test, stepper=0.1)
 
-    trainingX, trainingY = calculate_pdf_from_file(file_name, params, training_size=200)
+    trainingX, trainingY = calculate_pdf_from_file(file_name, params, training_size=10)
+    # Nome del file in cui salvare i dati
+    nome_file = "dati.txt"
+
+    # Apri il file in modalità scrittura
+    with open(nome_file, 'w') as file:
+        for val1, val2 in zip(trainingX, trainingY):
+            # Scrivi un elemento del primo array, uno spazio e un elemento del secondo array
+            file.write(f"{val1[0]} {val2[0]}\n")
+
+    prova_NEW = PDF(default="MULTIVARIATE_1254")
+    prova_NEW.generate_training(100)
+    prova_NEW.generate_test()
 
     # Plot delle pdf
-    plt.plot(pdf.test_X, pdf.test_Y, label="True PDF", color="green")
+    plt.plot(prova_NEW.test_X, prova_NEW.test_Y, label="True PDF", color="green")
 
     # Genera l'istogramma
     plt.hist(samples_array, bins=32, density=True, alpha=0.7, color="grey")
     plt.scatter(trainingX, trainingY)
+    plt.scatter(prova_NEW.training_X, prova_NEW.training_Y)
     plt.xlabel("Valore")
     plt.ylabel("Densità")
     plt.title("Istogramma della Distribuzione di Probabilità")

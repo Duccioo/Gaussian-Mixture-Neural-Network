@@ -86,7 +86,7 @@ def test_and_log(
 def main():
     # command line parsing
     parser = argparse.ArgumentParser(description="Project for AI Exam")
-    parser.add_argument("--pdf", type=str, default="exponential")
+    parser.add_argument("--pdf", type=str, default="Multimodal 1254")
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--components", type=int, default=4)
@@ -102,8 +102,8 @@ def main():
     n_components = args.components  # number of components for the Gaussian Mixture
     n_samples = args.samples  # number of samples to generate from the exp distribution
     stepper_x_test = 0.01  # step to take on the limit_test for generate the test data
-    init_param_gmm = "kmeans"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
-    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
+    init_param_gmm = "random"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
+    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
     max_iter = 100  # the maximum number of iterations for training the GMMs
     n_init = 10  # the number of initial iterations for training the GMMs
     offset_limit = 0.0
@@ -153,19 +153,16 @@ def main():
 
     if args.pdf in ["exponential", "exp"]:
         pdf = pdf_exponential
-    else:
+    elif args.pdf in ["multimodal"]:
         pdf = pdf_multimodal
+    else:
+        pdf = PDF(default="MULTIVARIATE_1254")
 
     # sample the data from a known distribution
-    x_training, y_training = pdf.generate_training(n_samples=n_samples, save_filename=f"train", seed=seed)
+    x_training, y_training = pdf.generate_training(n_samples=n_samples, seed=seed)
 
     # generate the data for plotting the pdf
-    limit_test = (np.min(x_training) - offset_limit, np.max(x_training) + offset_limit)
-    x_test, y_test = pdf.generate_test(
-        save_filename=f"test",
-        range_limit=limit_test,
-        stepper=stepper_x_test,
-    )
+    x_test, y_test = pdf.generate_test(stepper=stepper_x_test,)
 
     id_dataset = generate_unique_id([x_training, y_training, x_test, y_test], lenght=5)
 
