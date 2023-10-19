@@ -42,14 +42,12 @@ def test_and_log(
     id_dataset: str = "",
     write_to_csv=True,
 ):
-    pattern = re.compile(r"MLP|NN")
-    if not bool(pattern.search(model_type)):
+    pattern_MLP_NN = re.compile(r"MLP|NN")
+    if not bool(pattern_MLP_NN.search(model_type)):
         # predict the pdf with GMM
         pdf_predicted = np.exp(
             model.score_samples(X)
         )  # with .score_samples we get the log-likelihood over all the samples
-        # print(X.shape)
-        # print(pdf_predicted[0:10])
 
     else:
         # predict the pdf with GMM + MLP
@@ -57,6 +55,9 @@ def test_and_log(
 
     round_number = 3
     r2_value = round(r2_score(y_true, pdf_predicted), round_number)
+
+    if pdf_type not in ["logistic", "exponential"]:
+        pdf_type = " default MULTIMODAL_1254"
 
     if write_to_csv == True:
         # MLP scoring:
@@ -86,7 +87,7 @@ def test_and_log(
 def main():
     # command line parsing
     parser = argparse.ArgumentParser(description="Project for AI Exam")
-    parser.add_argument("--pdf", type=str, default="Multimodal 1254")
+    parser.add_argument("--pdf", type=str, default="default")
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--components", type=int, default=4)
@@ -102,20 +103,20 @@ def main():
     n_components = args.components  # number of components for the Gaussian Mixture
     n_samples = args.samples  # number of samples to generate from the exp distribution
     stepper_x_test = 0.01  # step to take on the limit_test for generate the test data
-    init_param_gmm = "random"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
-    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
+    init_param_gmm = "kmeans"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
+    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
     max_iter = 100  # the maximum number of iterations for training the GMMs
     n_init = 10  # the number of initial iterations for training the GMMs
     offset_limit = 0.0
 
     mlp_params = {
         "criterion": [nn.HuberLoss],
-        "max_epochs": [10, 100, 1000],
+        "max_epochs": [50, 100, 1000],
         "batch_size": [4, 8, 16],
         "lr": [0.001, 0.003],
         "module__last_activation": ["lambda"],
         "module__hidden_layer": [
-            [(16, nn.ReLU())],
+            # [(16, nn.ReLU())],
             [(16, nn.ReLU()), (32, nn.ReLU()), (32, nn.ReLU()), (16, nn.ReLU())],
             [(128, nn.ReLU()), (128, nn.Tanh())],
             [(80, nn.ReLU()), (160, nn.ReLU())],
@@ -132,7 +133,7 @@ def main():
     # generate the sample from a known distribution:
     pdf_exponential = PDF({"type": "exponential", "mean": 0.6})
 
-    pdf_multimodal = PDF(
+    pdf_logistic_multimodal = PDF(
         [
             [
                 {"type": "exponential", "rate": -1, "weight": 0.2},
@@ -153,8 +154,8 @@ def main():
 
     if args.pdf in ["exponential", "exp"]:
         pdf = pdf_exponential
-    elif args.pdf in ["multimodal"]:
-        pdf = pdf_multimodal
+    elif args.pdf in ["multimodal logistic", "logistic"]:
+        pdf = pdf_logistic_multimodal
     else:
         pdf = PDF(default="MULTIVARIATE_1254")
 
@@ -162,7 +163,9 @@ def main():
     x_training, y_training = pdf.generate_training(n_samples=n_samples, seed=seed)
 
     # generate the data for plotting the pdf
-    x_test, y_test = pdf.generate_test(stepper=stepper_x_test,)
+    x_test, y_test = pdf.generate_test(
+        stepper=stepper_x_test,
+    )
 
     id_dataset = generate_unique_id([x_training, y_training, x_test, y_test], lenght=5)
 
@@ -225,6 +228,7 @@ def main():
         n_jobs=args.jobs,
         device=device,
         save_filename=f"train_mlp{'_Biased' if args.bias == True else '' }_{init_param_mlp}_C{n_components}",
+        early_stop=True,
     )
 
     if args.gridsearch == True:
@@ -262,7 +266,7 @@ def main():
             pdf_true=y_test,
             save=args.save,
             name=f"result_G-{id_gmm}_M-{id_mlp}_C{n_components}",
-            title=f"PDF estimation with {n_components} components",
+            title=f"PDF estimation with {n_components} components and {n_samples} samples",
             show=args.show,
         )
     else:

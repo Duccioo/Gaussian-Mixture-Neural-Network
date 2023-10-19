@@ -148,9 +148,19 @@ class GM_NN_Model:
         save_filename: str or None = None,
         base_dir: str or None = None,
         patience: int = 1000,
+        early_stop: bool = False,
     ):
         if device == "auto" or device == None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        callbacks = []
+        if early_stop:
+            callbacks.append(
+                EpochScoring(scoring="r2", lower_is_better=False),
+            )
+            callbacks.append(
+                EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
+            )
 
         if search_type == "auto":
             for value in self.parameters.values():
@@ -173,10 +183,7 @@ class GM_NN_Model:
                 device=device,
                 module__device=device,
                 module__input_features=X.shape[1],
-                # callbacks=[
-                #     EpochScoring(scoring="r2", lower_is_better=False),
-                #     EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
-                # ],
+                callbacks=callbacks
             )
 
         elif search_type == "gridsearch":
@@ -194,10 +201,7 @@ class GM_NN_Model:
                 device=device,
                 module__device=device,
                 module__input_features=X.shape[1],
-                # callbacks=[
-                #     EpochScoring(scoring="r2", lower_is_better=False),
-                #     EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
-                # ],
+                callbacks=callbacks,
             )
 
             self.nn_model = GridSearchCV(
