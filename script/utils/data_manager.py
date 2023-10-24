@@ -105,6 +105,7 @@ def generate_points_in_grid(start, end, step, dimensions):
 
 @define(slots=True)
 class PDF:
+    name: str = field(default="no-name-set")
     params: list = field(factory=list)
     dimension: int = field(default=1)
     default: str = field(default=None)
@@ -118,9 +119,11 @@ class PDF:
     unique_id_training: str = field(init=True, default="00000")
     unique_id_test: str = field(init=True, default="00000")
 
-    def __init__(self, params: list = [], default=None):
+    def __init__(self, params: list = [], default=None, name=None):
         if default == "MULTIVARIATE_1254":
             params = MULTIVARIATE_1254
+            if name is None:
+                name = default
 
         if isinstance(params, list) == False:
             if params.get("weight") == None:
@@ -135,7 +138,7 @@ class PDF:
                 params[d][0]["weight"] = 1
 
         dimension = len(params)
-        self.__attrs_init__(params, dimension, default)
+        self.__attrs_init__(name, params, dimension, default)
 
     def generate_training(
         self, n_samples, seed=None, save_filename=None, base_dir=None, scope=(-float("inf"), float("inf"))

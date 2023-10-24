@@ -4,11 +4,12 @@ import csv
 import os
 import hashlib
 
-BASE_RESULT_DIR = ["..", "..", "result_2"]
+BASE_RESULT_DIR = ["..", "..", "result_3"]
 
 
 def write_result(
     id: str or int = "000",
+    id_experiment: str or int = "",
     components: int = 4,
     pdf_type: list = [{"type": "exponential", "mean": 0.6}],
     experiment_params: dict = {"hidden_layers": [64, 32, 16], "activation": "relu"},
@@ -28,7 +29,7 @@ def write_result(
 ):
     write_csv(
         check_colomn="id",
-        id=id,
+        image_id=id_experiment,
         components=components,
         model=model_type,
         pdf_type=pdf_type,
@@ -40,6 +41,7 @@ def write_result(
         EVS_score=evs_score,
         ISE_score=ise_score,
         k1_score=k1_score,
+        id=id,
         best_params=best_params,
         experiment_params=experiment_params,
         log_name_file=log_name_file,
@@ -51,8 +53,6 @@ def write_result(
 def plot_AllInOne(
     training_sample,
     test_sample,
-    pdf_predicted_gmm=None,
-    pdf_true=None,
     mlp_target=None,
     bins=32,
     density=True,
@@ -60,27 +60,28 @@ def plot_AllInOne(
     show=True,
     name="figure1",
     title="Gaussian Mixture for Exponential Distribution",
+    pdf_true=None,
+    pdf_predicted_gmm=None,
     pdf_predicted_mlp=None,
+    pdf_predicted_knn=None,
+    pdf_predicted_parzen=None,
     base_dir=[BASE_RESULT_DIR, "img"],
 ):
     # Plot delle pdf
     if pdf_predicted_gmm is not None:
-        plt.plot(test_sample, pdf_predicted_gmm, label="Predicted PDF (GMM)", color="blue")
+        plt.plot(test_sample, pdf_predicted_gmm, label="GMM", color="blue", alpha=0.7)
+    if pdf_predicted_knn is not None:
+        plt.plot(test_sample, pdf_predicted_knn, label="KNN", color="brown", alpha=0.7)
+    if pdf_predicted_parzen is not None:
+        plt.plot(test_sample, pdf_predicted_parzen, label="PARZEN", color="pink", alpha=0.7)
+    if pdf_predicted_mlp is not None:
+        plt.plot(test_sample, pdf_predicted_mlp, label="MLP", color="red")
+
     if pdf_true is not None:
         plt.plot(test_sample, pdf_true, label="True PDF", color="green", linestyle="--")
-    if pdf_predicted_mlp is not None:
-        plt.plot(
-            test_sample,
-            pdf_predicted_mlp,
-            label="Predicted PDF (MLP)",
-            color="red",
-        )
+
     if mlp_target is not None:
-        plt.scatter(
-            training_sample,
-            mlp_target,
-            label="Target (MLP)",
-        )
+        plt.scatter(training_sample, mlp_target, label="Target (MLP)")
 
     plt.hist(training_sample, bins=bins, density=density, alpha=0.5, label="Data", color="dimgray")
     plt.title(title)

@@ -138,12 +138,3 @@ results you get from a GMM with the same number c of components). Do not
 worry if the Gaussian components per se have a "strange" behavior in
 proximity of the borders of the deifnition domain (i.e., in proximity of 0
 and 10), just focus on the final model MLP + GMM."
-
-# to do:
-
-- implement the function to load the prof's data:
-
-  - the function must be called only if I specified a specific parameter when I create the PDF object
-  - must take the points from the prof's .txt file and return both the points and the PDF associated with the points and the test set given a certain interval.
-
-- test by fixing a certain number of components and look for the best network

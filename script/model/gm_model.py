@@ -1,5 +1,3 @@
-from sklearn.mixture import GaussianMixture
-from sklearn.model_selection import GridSearchCV
 import numpy as np
 import os
 
@@ -24,9 +22,6 @@ def generate_target_MLP(gm_model, X, bias: bool = False, save_filename: str or N
             gm_model.fit(X_1)
             Y.append(np.exp(gm_model.score_samples(sample.reshape(-1, X_1.shape[1]))))
         Y = np.array(Y).reshape(-1, 1)
-
-        # print(Y.shape)
-        # print(X.shape)
 
         if save_filename is not None:
             save_dataset((X, Y), save_filename)

@@ -10,7 +10,6 @@ from attrs import define, field
 from sklearn.mixture import GaussianMixture
 import os
 
-import matplotlib.pyplot as plt
 
 # ---
 from utils.utils import check_base_dir, generate_unique_id
@@ -147,19 +146,19 @@ class GM_NN_Model:
         device: str or None = "cpu",
         save_filename: str or None = None,
         base_dir: str or None = None,
-        patience: int = 1000,
-        early_stop: bool = False,
+        patience: int = 20,
+        early_stop: bool or str = False,
     ):
         if device == "auto" or device == None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
         callbacks = []
-        if early_stop:
+        if early_stop != False and early_stop in ["valid_loss", "r2"]:
             callbacks.append(
-                EpochScoring(scoring="r2", lower_is_better=False),
+                EpochScoring(scoring=early_stop, lower_is_better=False),
             )
             callbacks.append(
-                EarlyStopping(monitor="r2", patience=patience, load_best=True, lower_is_better=False),
+                EarlyStopping(monitor=early_stop, patience=patience, load_best=False, lower_is_better=False),
             )
 
         if search_type == "auto":
