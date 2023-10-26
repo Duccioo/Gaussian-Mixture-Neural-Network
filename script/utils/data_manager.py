@@ -5,17 +5,8 @@ from scipy.stats import logistic, expon
 
 # ---
 from .utils import check_base_dir, generate_unique_id
-
-BASE_DATA_DIR = ["..", "..", "data"]
-
-MULTIVARIATE_1254 = [
-    [
-        {"type": "exponential", "rate": 1, "weight": 0.2},
-        {"type": "logistic", "mean": 4, "scale": 0.8, "weight": 0.25},
-        {"type": "logistic", "mean": 5.5, "scale": 0.7, "weight": 0.3},
-        {"type": "exponential", "mean": -1, "weight": 0.25, "shift": -10},
-    ]
-]
+from .config import BASE_DATA_DIR
+from .config import MULTIVARIATE_1254
 
 
 def save_dataset(X, file: str or None = None, base_dir: str or None = None):

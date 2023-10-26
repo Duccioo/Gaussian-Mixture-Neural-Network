@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+data/MLP
+
+new_result
+new_result_v3/img
 # Distribution / packaging
 .Python
 build/

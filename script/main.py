@@ -27,6 +27,15 @@ def calculate_ise(true_pdf, predicted_pdf, bin_width=0.01):
     return ise
 
 
+def get_model_complexity(parameters):
+    nn_param = 1
+    nn_layer = 0
+    for neuron in parameters["module__hidden_layer"]:
+        nn_param = nn_param * neuron[0]
+        nn_layer = nn_layer + 1
+    return nn_param, nn_layer
+
+
 def test_and_log(
     y_true,
     y_predicted,
@@ -34,10 +43,12 @@ def test_and_log(
     pdf: list = [],
     n_samples: int = 100,
     n_components=None,
+    n_layer: int or None = None,
+    n_neurons: int or None = None,
     mlp_params="None",
     best_params="None",
     model_type="GMM",
-    epoch: int = 0,
+    epoch: int or None= None ,
     dimension: int = 1,
     id: str = "",
     id_dataset: str = "",
@@ -60,8 +71,10 @@ def test_and_log(
             n_samples=n_samples,
             dimension=dimension,
             r2_score=r2_value,
-            mse_score=round(np.sqrt(mean_squared_error(y_true, y_predicted)), round_number),
             max_error_score=round(max_error(y_true, y_predicted), round_number),
+            n_layer=n_layer,
+            n_neurons=n_neurons,
+            mse_score=round(np.sqrt(mean_squared_error(y_true, y_predicted)), round_number),
             evs_score=round(explained_variance_score(y_true, y_predicted), round_number),
             ise_score=round(calculate_ise(y_true, y_predicted), round_number),
             k1_score=round(calculate_kl_divergence(y_true, y_predicted), round_number),
@@ -107,31 +120,32 @@ def main():
 
     # -- other models parameters
     init_param_gmm = "kmeans"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
-    parzen_h = 0.3
-    knn_k1 = 1
+    parzen_h = 0.33
+    knn_k1 = 2
 
     # -- mlp parameters
     init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
-    early_stop = "valid_loss"
+    early_stop = None  # "valid_loss" or "r2" or None
     patience = 100
     mlp_params = {
         "criterion": [nn.HuberLoss],
-        "max_epochs": [100, 250, 500, 1000],
-        "batch_size": [4, 8, 16],
+        "max_epochs": [600],
+        "batch_size": [25, 16, 32],
         "lr": [0.001, 0.003],
-        "module__last_activation": ["lambda"],
+        "module__last_activation": ["lambda", None],
         "module__hidden_layer": [
-            [(16, nn.ReLU())],
-            [(16, nn.ReLU()), (32, nn.Tanh()), (32, nn.Tanh()), (16, nn.ReLU())],
-            [(128, nn.ReLU()), (32, nn.Tanh())],
-            [(16, nn.ReLU()), (128, nn.ReLU())],
-            [(128, nn.ReLU()), (128, nn.ReLU()), (128, nn.ReLU())],
+            # [(16, nn.ReLU())],
+            [(16, nn.LeakyReLU()), (32, nn.Tanh()), (32, nn.LeakyReLU(0.1)), (16, nn.ReLU())],
+            # [(16, nn.ReLU()), (32, nn.Tanh()), (32, nn.Tanh()), (16, nn.ReLU())],
+            # [(128, nn.ReLU()), (32, nn.Tanh())],
+            # [(16, nn.ReLU()), (128, nn.ReLU())],
+            # [(128, nn.ReLU()), (128, nn.ReLU()), (128, nn.ReLU())],
             [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
-            [(128, nn.ReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
+            # [(128, nn.ReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
         ],
         "optimizer": [optim.Adam],
         # "optimizer__weight_decay": [0.001],
-        "module__dropout": [0.3, 0.1],
+        "module__dropout": [0.2],
     }
 
     # generate the sample from a known distribution:
@@ -231,11 +245,12 @@ def main():
             pdf=pdf.params,
             dimension=pdf.dimension,
             n_samples=n_samples,
-            model_type=f"PARZEN WINDOW {parzen_h}",
+            model_type=f"PARZEN WINDOW",
             id=id_parzen,
             id_dataset=id_dataset,
             id_experiment=id_experiment,
             write_to_csv=args.save,
+            mlp_params=parzen_h,
         )
     else:
         pdf_predicted_parzen = None
@@ -253,11 +268,12 @@ def main():
             pdf=pdf.params,
             dimension=pdf.dimension,
             n_samples=n_samples,
-            model_type=f"KNN {knn_k1}",
+            model_type=f"KNN",
             id=id_knn,
             id_dataset=id_dataset,
             id_experiment=id_experiment,
             write_to_csv=args.save,
+            mlp_params=knn_k1,
         )
     else:
         pdf_predicted_knn = None
@@ -275,6 +291,8 @@ def main():
             mlp_params,
             args.bias,
             args.gridsearch,
+            early_stop,
+            patience,
         ],
         lenght=5,
     )
@@ -306,6 +324,8 @@ def main():
     else:
         epoch = model_mlp.nn_model.history[-1, "epoch"]
 
+    num_neurons, num_layer = get_model_complexity(model_mlp.nn_best_params)
+
     # train the model and predict the pdf over the test set
     r2_mlp = test_and_log(
         y_predicted=pdf_predicted_mlp,
@@ -315,12 +335,14 @@ def main():
         dimension=pdf.dimension,
         n_samples=n_samples,
         n_components=n_components,
+        n_layer=num_layer,
+        n_neurons=num_neurons,
         mlp_params=mlp_params,
         best_params=model_mlp.nn_best_params,
         id=id_mlp,
         epoch=epoch,
         id_dataset=id_dataset,
-        model_type=f"MLP {init_param_mlp} {'Biased' if args.bias == True else '' }",
+        model_type=f"MLP {init_param_mlp}{' Biased' if args.bias == True else '' }",
         id_experiment=id_experiment,
         write_to_csv=args.save,
     )
@@ -344,6 +366,8 @@ def main():
         )
     else:
         print(f"impossible to plot on a {pdf.dimension} dimensional space")
+
+    print(id_experiment)
 
 
 if __name__ == "__main__":

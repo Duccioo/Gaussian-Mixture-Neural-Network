@@ -4,23 +4,27 @@ import csv
 import os
 import hashlib
 
-BASE_RESULT_DIR = ["..", "..", "result_3"]
+# ---
+from .config import BASE_RESULT_DIR
 
 
 def write_result(
     id: str or int = "000",
     id_experiment: str or int = "",
-    components: int = 4,
-    pdf_type: list = [{"type": "exponential", "mean": 0.6}],
-    experiment_params: dict = {"hidden_layers": [64, 32, 16], "activation": "relu"},
+    components: int = 0,
+    pdf_type: list = [],
+    experiment_params: dict = {},
     best_params: dict or None = None,
     r2_score: float = 0.0,
+    n_layer: int or None = None,
+    n_neurons: int or None = None,
+    epoch:int or None = None,
     mse_score: float = 0.0,
     max_error_score: float = 0.0,
     evs_score: float = 0.0,
     ise_score: float = 0.0,
     k1_score: float = 0.0,
-    model_type: str = "GNN+MLP",
+    model_type: str = "",
     log_name_file: str = "experiment_log.csv",
     n_samples: int = 100,
     dimension: int = 1,
@@ -36,8 +40,11 @@ def write_result(
         samples=n_samples,
         dimension=dimension,
         r2_score=r2_score,
-        MSE_score=mse_score,
         max_error_score=max_error_score,
+        n_layer=n_layer,
+        n_neurons=n_neurons,
+        epoch=epoch,
+        MSE_score=mse_score,
         EVS_score=evs_score,
         ISE_score=ise_score,
         k1_score=k1_score,
@@ -69,11 +76,11 @@ def plot_AllInOne(
 ):
     # Plot delle pdf
     if pdf_predicted_gmm is not None:
-        plt.plot(test_sample, pdf_predicted_gmm, label="GMM", color="blue", alpha=0.7)
+        plt.plot(test_sample, pdf_predicted_gmm, label="GMM", color="blue", alpha=0.85)
     if pdf_predicted_knn is not None:
         plt.plot(test_sample, pdf_predicted_knn, label="KNN", color="brown", alpha=0.7)
     if pdf_predicted_parzen is not None:
-        plt.plot(test_sample, pdf_predicted_parzen, label="PARZEN", color="pink", alpha=0.7)
+        plt.plot(test_sample, pdf_predicted_parzen, label="PARZEN", color="violet", alpha=0.75)
     if pdf_predicted_mlp is not None:
         plt.plot(test_sample, pdf_predicted_mlp, label="MLP", color="red")
 
@@ -206,7 +213,10 @@ def write_csv(
     log_entry = [date]
     log_title = ["Date"]
     for key, element in kwargs.items():
-        log_entry.append(element)
+        if element is None:
+            log_entry.append("")
+        else:
+            log_entry.append(str(element))
         log_title.append(key.replace("_", " ").title())
 
     # check if file exist

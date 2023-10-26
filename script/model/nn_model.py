@@ -115,6 +115,8 @@ class GM_NN_Model:
         if isinstance(criterion, list) == False:
             criterion = [criterion]
 
+        
+
         self.__attrs_init__(
             parameters,
             criterion=criterion,
@@ -123,6 +125,7 @@ class GM_NN_Model:
             init_params=init_params,
             base_dir=base_dir,
             seed=seed,
+         
         )
 
     def __attrs_post_init__(self):
@@ -155,7 +158,7 @@ class GM_NN_Model:
         callbacks = []
         if early_stop != False and early_stop in ["valid_loss", "r2"]:
             callbacks.append(
-                EpochScoring(scoring=early_stop, lower_is_better=False),
+                EpochScoring(scoring="r2", lower_is_better=False),
             )
             callbacks.append(
                 EarlyStopping(monitor=early_stop, patience=patience, load_best=False, lower_is_better=False),
@@ -182,7 +185,7 @@ class GM_NN_Model:
                 device=device,
                 module__device=device,
                 module__input_features=X.shape[1],
-                callbacks=callbacks
+                callbacks=callbacks,
             )
 
         elif search_type == "gridsearch":
