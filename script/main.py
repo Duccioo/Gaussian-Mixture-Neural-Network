@@ -48,7 +48,7 @@ def test_and_log(
     mlp_params="None",
     best_params="None",
     model_type="GMM",
-    epoch: int or None= None ,
+    epoch: int or None = None,
     dimension: int = 1,
     id: str = "",
     id_dataset: str = "",
@@ -124,18 +124,18 @@ def main():
     knn_k1 = 2
 
     # -- mlp parameters
-    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
-    early_stop = None  # "valid_loss" or "r2" or None
-    patience = 100
+    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
+    early_stop = "r2"  # "valid_loss" or "r2" or None
+    patience = 20
     mlp_params = {
         "criterion": [nn.HuberLoss],
-        "max_epochs": [600],
-        "batch_size": [25, 16, 32],
+        "max_epochs": [250],
+        "batch_size": [5, 16, 32],
         "lr": [0.001, 0.003],
         "module__last_activation": ["lambda", None],
         "module__hidden_layer": [
             # [(16, nn.ReLU())],
-            [(16, nn.LeakyReLU()), (32, nn.Tanh()), (32, nn.LeakyReLU(0.1)), (16, nn.ReLU())],
+            [(16, nn.LeakyReLU()), (32, nn.Tanh()), (32, nn.Tanh()), (16, nn.LeakyReLU())],
             # [(16, nn.ReLU()), (32, nn.Tanh()), (32, nn.Tanh()), (16, nn.ReLU())],
             # [(128, nn.ReLU()), (32, nn.Tanh())],
             # [(16, nn.ReLU()), (128, nn.ReLU())],
@@ -145,7 +145,7 @@ def main():
         ],
         "optimizer": [optim.Adam],
         # "optimizer__weight_decay": [0.001],
-        "module__dropout": [0.2],
+        "module__dropout": [0.00],
     }
 
     # generate the sample from a known distribution:
@@ -368,6 +368,7 @@ def main():
         print(f"impossible to plot on a {pdf.dimension} dimensional space")
 
     print(id_experiment)
+    print("MLP R2: ", r2_mlp)
 
 
 if __name__ == "__main__":

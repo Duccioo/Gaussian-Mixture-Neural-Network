@@ -71,7 +71,7 @@ class NeuralNetworkModular(nn.Module):
 
     def forward(self, x):
         for layer, activation in zip(self.layers, self.activation):
-            x = activation(layer(x))
+            x = self.dropout(activation(layer(x)))
         x = self.output_layer(x)
         if self.last_activation is not None:
             x = self.last_activation(x)
@@ -115,8 +115,6 @@ class GM_NN_Model:
         if isinstance(criterion, list) == False:
             criterion = [criterion]
 
-        
-
         self.__attrs_init__(
             parameters,
             criterion=criterion,
@@ -125,7 +123,6 @@ class GM_NN_Model:
             init_params=init_params,
             base_dir=base_dir,
             seed=seed,
-         
         )
 
     def __attrs_post_init__(self):
