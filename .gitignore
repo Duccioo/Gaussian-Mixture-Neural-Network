@@ -9,7 +9,7 @@ __pycache__/
 data/MLP
 
 new_result
-new_result_v3/img
+# new_result_v3/img
 # Distribution / packaging
 .Python
 build/
