@@ -165,13 +165,13 @@ By default:
 
 - With the gridsearch we obtained a perfect fit for the true PDF with a 32 components GMM+MLP:
 
-![result1](./result/img/result-926_C32_R0.6.png)
+![result1](./old_result/result/img/result-926_C32_R0.6.png)
 
 ### Bias version of the BEST RESULT:
 
 - with the best model for the GMM+MLP than we switch to a bias version:
 
-![result2](./result/img/result-926_C32_R0.6_Biased.png)
+![result2](./old_result/result/img/result-926_C32_R0.6_Biased.png)
 
 ## Report:
 
