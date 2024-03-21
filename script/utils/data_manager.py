@@ -185,7 +185,7 @@ class PDF:
 
         #  --- generating part ---
         elif self.default is not None:
-            print("provo a generare dataset...")
+            # print("provo a generare dataset...")
             self.load_default(n_samples=n_samples)
             return self.training_X, self.training_Y
 

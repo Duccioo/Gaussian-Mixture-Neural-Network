@@ -7,10 +7,9 @@ from skorch import NeuralNet
 from skorch.callbacks import EarlyStopping, EpochScoring, LRScheduler, WandbLogger
 import numpy as np
 from attrs import define, field
-from sklearn.mixture import GaussianMixture
 import os
-import wandb
 
+import random
 
 # ---
 from utils.utils import check_base_dir, generate_unique_id
@@ -137,8 +136,6 @@ class GM_NN_Model:
         search_type: str = None,
         n_jobs: int = 1,
         device: str = "cpu",
-        save_filename: str = None,
-        base_dir: str = None,
         patience: int = 20,
         early_stop: bool = False,
     ):
@@ -146,10 +143,10 @@ class GM_NN_Model:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
         callbacks = []
-        callbacks.append(
-            EpochScoring(scoring="r2", lower_is_better=False),
-        )
-        callbacks.append(LRScheduler(policy=torch.optim.lr_scheduler.LinearLR))
+        # callbacks.append(
+        #     EpochScoring(scoring="r2", lower_is_better=False),
+        # )
+        # callbacks.append(LRScheduler(policy=torch.optim.lr_scheduler.LinearLR))
 
         # wandb_run = wandb.init()
 
@@ -239,6 +236,44 @@ class GM_NN_Model:
 
     def predict(self, X):
         return self.nn_model.predict(torch.tensor(X, dtype=torch.float32))
+
+
+def train_old_style(
+    model, X_train, Y_train, lr, epochs, batch_size, optimizer_name, device
+):
+
+    X_train = torch.tensor(X_train, dtype=torch.float32)
+    Y_train = torch.tensor(Y_train, dtype=torch.float32)
+
+    xy_train = torch.cat((X_train, Y_train), 1)
+
+    train_loader = torch.utils.data.DataLoader(
+        xy_train,
+        batch_size=batch_size,
+        shuffle=True,
+    )
+
+    criterion = nn.HuberLoss()
+    optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), lr=lr)
+
+    # Training of the model.
+    for epoch in range(epochs):
+        model.train()
+        for batch_idx, train_data in enumerate(train_loader):
+            data = train_data[:, 0]
+            target = train_data[:, 1]
+            # Limiting training data for faster epochs.
+
+            data, target = data.view(data.size(0), 1).to(device), target.view(
+                target.size(0), 1
+            ).to(device)
+
+            optimizer.zero_grad()
+            output = model(data)
+
+            loss_value = criterion(output, target)
+            loss_value.backward()
+            optimizer.step()
 
 
 if __name__ == "__main__":

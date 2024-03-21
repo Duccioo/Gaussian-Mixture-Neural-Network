@@ -1,12 +1,14 @@
 import optuna
 from optuna.trial import TrialState
 import torch
+import tempfile
+
+import sys
+import os
+
 
 # ---
-import sys
-from os import path
-
-a = sys.path.append((path.dirname(path.dirname(path.abspath(__file__)))))
+a = sys.path.append((os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from model.optuna_model import objective_MLP_allin_gmm
 
@@ -24,21 +26,21 @@ if __name__ == "__main__":
         # MODEL PARAMS:
         "n_layers": (1, 4),
         "range_neurons": (4, 64),
-        "range_dropout": (0.01, 0.17),
+        "range_dropout": (0.00, 0.2),
         "suggest_activation": ("relu", "tanh"),
         "suggest_last_activation": ("lambda", None),
         # GMM and DATASET PARAMS:
-        "n_samples": 400,
-        "n_components": (5, 10),
+        "n_samples": 100,
+        "n_components": (2, 15),
         "init_params_gmm": ("k-means++", "kmeans"),
         "seed": 42,
-        "n_init": (10, 100),
-        "max_iter": (10, 100),
+        "n_init": 60,
+        "max_iter": 80,
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"BEST GMM MLP 1"  # Unique identifier of the study.
+    study_name = f"BEST GMM MLP 2"  # Unique identifier of the study.
     storage_name = "sqlite:///optuna-02.db"
 
     study = optuna.create_study(
@@ -50,13 +52,17 @@ if __name__ == "__main__":
 
     study.set_metric_names(["R2 score"])
 
+    tmp_dir = tempfile.TemporaryDirectory()
+
     study.optimize(
-        lambda trial: objective_MLP_allin_gmm(trial, params),
+        lambda trial: objective_MLP_allin_gmm(trial, params, tmp_dir.name),
         n_trials=300,
         timeout=None,
         n_jobs=1,
         show_progress_bar=True,
     )
+
+    tmp_dir.cleanup()
 
     pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
     complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])

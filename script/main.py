@@ -22,7 +22,7 @@ from utils.utils import plot_AllInOne, write_result, generate_unique_id, check_b
 from model.nn_model import GM_NN_Model
 from model.parzen_model import ParzenWindow_Model
 from model.knn_model import KNN_Model
-from model.gm_model import generate_target_MLP
+from model.gm_model import gen_target_with_gm_parallel
 
 
 def calculate_kl_divergence(true_pdf, predicted_pdf):
@@ -136,8 +136,8 @@ def main():
 
     # -- gmm parameters
     n_components = args.components  # number of components for the Gaussian Mixture
-    max_iter = 91  # the maximum number of iterations for training the GMMs
-    n_init = 59  # the number of initial iterations for training the GMMs
+    max_iter = 80  # the maximum number of iterations for training the GMMs
+    n_init = 60  # the number of initial iterations for training the GMMs
 
     # -- other models parameters
     init_param_gmm = "kmeans"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
@@ -145,18 +145,19 @@ def main():
     knn_k1 = 2
 
     # -- mlp parameters
-    init_param_mlp = "k-means++"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
+    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
     early_stop = None  # "valid_loss" or "r2" or None
     patience = 20
     mlp_params = {
         "criterion": [nn.HuberLoss()],
-        "max_epochs": [400],
-        "batch_size": [10, 32],
+        "max_epochs": [658],
+        "batch_size": [37, 32],
         "lr": [
-            0.0015,
+            0.0010039468848053604,
         ],
         "module__last_activation": ["lambda"],
         "module__hidden_layer": [
+            [(52, nn.ReLU()), (10, nn.Tanh()), (36, nn.ReLU()), (21, nn.ReLU())],
             [(60, nn.ReLU()), (60, nn.ReLU()), (10, nn.ReLU())],
             [(54, nn.ReLU()), (57, nn.ReLU())],
             [(32, nn.ReLU()), (16, nn.Tanh()), (16, nn.Tanh()), (8, nn.Tanh())],
@@ -167,9 +168,9 @@ def main():
             # [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
             # [(128, nn.ReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
         ],
-        "optimizer": [optim.Adam],
+        "optimizer": [optim.RMSprop],
         # "optimizer__weight_decay": [0.001],
-        "module__dropout": [0.03],
+        "module__dropout": [0.01],
     }
 
     # generate the sample from a known distribution:
@@ -376,12 +377,13 @@ def main():
         save_filename = save_filename + "_" + unique_id + ".npz"
         save_filename = os.path.join(base_dir, save_filename)
 
-    _, gmm_target_y = generate_target_MLP(
+    _, gmm_target_y = gen_target_with_gm_parallel(
         gm_model=gm_model_target,
         X=x_training,
         save_filename=save_filename,
         bias=args.bias,
         progress_bar=True,
+        n_jobs=3,
     )
 
     model_mlp.fit(
@@ -390,7 +392,6 @@ def main():
         search_type="auto" if args.gridsearch == True else None,
         n_jobs=args.jobs,
         device=device,
-        save_filename=f"train_mlp{'_Biased' if args.bias == True else '' }_{init_param_mlp}_C{n_components}",
         early_stop=early_stop,
         patience=patience,
     )
@@ -426,12 +427,12 @@ def main():
         write_to_csv=args.save,
     )
 
-    with open("prova.json", "w") as f:
-        json.dump(model_mlp.history, f)
+    # with open("prova.json", "w") as f:
+    #     json.dump(model_mlp.history, f)
 
-    r2_mlp_history = [elem["r2"] for elem in model_mlp.history]
-    train_loss_mlp_history = [elem["train_loss"] for elem in model_mlp.history]
-    valid_loss_mlp_history = [elem["valid_loss"] for elem in model_mlp.history]
+    # r2_mlp_history = [elem["r2"] for elem in model_mlp.history]
+    # train_loss_mlp_history = [elem["train_loss"] for elem in model_mlp.history]
+    # valid_loss_mlp_history = [elem["valid_loss"] for elem in model_mlp.history]
 
     # ----------------------------------------------------------------
     # plot the real pdf and the predicted pdf for GMM and MLP
