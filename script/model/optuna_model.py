@@ -10,9 +10,9 @@ from sklearn.mixture import GaussianMixture
 
 
 # ---
-from model.nn_model import AdaptiveSigmoid
+from nn_model import AdaptiveSigmoid
 from utils.data_manager import PDF
-from model.gm_model import gen_target_with_gm
+from gm_model import gen_target_with_gm
 from utils.utils import generate_unique_id
 
 
