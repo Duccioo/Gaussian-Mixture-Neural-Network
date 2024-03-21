@@ -1,18 +1,28 @@
 import numpy as np
+import numba as nb
+import torch
 import torch.nn as nn
 import torch.optim as optim
-from sklearn.metrics import r2_score, mean_squared_error, max_error, explained_variance_score
+import json
+import os
+
+from sklearn.metrics import (
+    r2_score,
+    mean_squared_error,
+    max_error,
+    explained_variance_score,
+)
 from sklearn.mixture import GaussianMixture
 from scipy.stats import entropy
-import re
 import argparse
 
 # ----
 from utils.data_manager import PDF
-from utils.utils import plot_AllInOne, write_result, generate_unique_id
+from utils.utils import plot_AllInOne, write_result, generate_unique_id, check_base_dir
 from model.nn_model import GM_NN_Model
 from model.parzen_model import ParzenWindow_Model
 from model.knn_model import KNN_Model
+from model.gm_model import generate_target_MLP
 
 
 def calculate_kl_divergence(true_pdf, predicted_pdf):
@@ -20,6 +30,7 @@ def calculate_kl_divergence(true_pdf, predicted_pdf):
     return np.mean(kl_divergence)
 
 
+@nb.njit()
 def calculate_ise(true_pdf, predicted_pdf, bin_width=0.01):
     # Calcola le aree dei rettangoli tra le due distribuzioni
     rectangle_areas = (true_pdf - predicted_pdf) ** 2 * bin_width
@@ -43,12 +54,12 @@ def test_and_log(
     pdf: list = [],
     n_samples: int = 100,
     n_components=None,
-    n_layer: int or None = None,
-    n_neurons: int or None = None,
+    n_layer: int = None,
+    n_neurons: int = None,
     mlp_params="None",
     best_params="None",
     model_type="GMM",
-    epoch: int or None = None,
+    epoch: int = None,
     dimension: int = 1,
     id: str = "",
     id_dataset: str = "",
@@ -74,8 +85,12 @@ def test_and_log(
             max_error_score=round(max_error(y_true, y_predicted), round_number),
             n_layer=n_layer,
             n_neurons=n_neurons,
-            mse_score=round(np.sqrt(mean_squared_error(y_true, y_predicted)), round_number),
-            evs_score=round(explained_variance_score(y_true, y_predicted), round_number),
+            mse_score=round(
+                np.sqrt(mean_squared_error(y_true, y_predicted)), round_number
+            ),
+            evs_score=round(
+                explained_variance_score(y_true, y_predicted), round_number
+            ),
             ise_score=round(calculate_ise(y_true, y_predicted), round_number),
             k1_score=round(calculate_kl_divergence(y_true, y_predicted), round_number),
             epoch=epoch,
@@ -98,7 +113,7 @@ def main():
 
     parser.add_argument("--components", type=int, default=4)
     parser.add_argument("--mlp_targets", action="store_true", default=False)
-    parser.add_argument("--gpu", action="store_true", default=False)
+    parser.add_argument("--gpu", action="store_true")
     parser.add_argument("--bias", action="store_true", default=False)
     parser.add_argument("--gridsearch", action="store_true", default=False)
 
@@ -106,6 +121,12 @@ def main():
     parser.add_argument("--knn", action="store_true", default=False)
     parser.add_argument("--parzen", action="store_true", default=False)
     args = parser.parse_args()
+
+    # select device:
+    if args.gpu:
+        device = args.gpu
+    else:
+        device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Parameters:
     # -- data parameters
@@ -115,8 +136,8 @@ def main():
 
     # -- gmm parameters
     n_components = args.components  # number of components for the Gaussian Mixture
-    max_iter = 100  # the maximum number of iterations for training the GMMs
-    n_init = 10  # the number of initial iterations for training the GMMs
+    max_iter = 91  # the maximum number of iterations for training the GMMs
+    n_init = 59  # the number of initial iterations for training the GMMs
 
     # -- other models parameters
     init_param_gmm = "kmeans"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
@@ -124,32 +145,37 @@ def main():
     knn_k1 = 2
 
     # -- mlp parameters
-    init_param_mlp = "random"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
-    early_stop = "r2"  # "valid_loss" or "r2" or None
+    init_param_mlp = "k-means++"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
+    early_stop = None  # "valid_loss" or "r2" or None
     patience = 20
     mlp_params = {
-        "criterion": [nn.HuberLoss],
-        "max_epochs": [250],
-        "batch_size": [5, 16, 32],
-        "lr": [0.001, 0.003],
-        "module__last_activation": ["lambda", None],
+        "criterion": [nn.HuberLoss()],
+        "max_epochs": [400],
+        "batch_size": [10, 32],
+        "lr": [
+            0.0015,
+        ],
+        "module__last_activation": ["lambda"],
         "module__hidden_layer": [
-            # [(16, nn.ReLU())],
-            [(16, nn.LeakyReLU()), (32, nn.Tanh()), (32, nn.Tanh()), (16, nn.LeakyReLU())],
+            [(60, nn.ReLU()), (60, nn.ReLU()), (10, nn.ReLU())],
+            [(54, nn.ReLU()), (57, nn.ReLU())],
+            [(32, nn.ReLU()), (16, nn.Tanh()), (16, nn.Tanh()), (8, nn.Tanh())],
             # [(16, nn.ReLU()), (32, nn.Tanh()), (32, nn.Tanh()), (16, nn.ReLU())],
             # [(128, nn.ReLU()), (32, nn.Tanh())],
             # [(16, nn.ReLU()), (128, nn.ReLU())],
             # [(128, nn.ReLU()), (128, nn.ReLU()), (128, nn.ReLU())],
-            [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
+            # [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
             # [(128, nn.ReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
         ],
         "optimizer": [optim.Adam],
         # "optimizer__weight_decay": [0.001],
-        "module__dropout": [0.00],
+        "module__dropout": [0.03],
     }
 
     # generate the sample from a known distribution:
-    pdf_exponential = PDF({"type": "exponential", "mean": 0.6}, name="exponential standard")
+    pdf_exponential = PDF(
+        {"type": "exponential", "mean": 0.6}, name="exponential standard"
+    )
 
     pdf_logistic_multimodal = PDF(
         [
@@ -171,6 +197,7 @@ def main():
 
     # sample the data from a known distribution
     x_training, y_training = pdf.generate_training(n_samples=n_samples, seed=seed)
+    n_samples = x_training.shape[0]
 
     # generate the data for plotting the pdf
     x_test, y_test = pdf.generate_test(stepper=stepper_x_test)
@@ -202,12 +229,27 @@ def main():
     # ------------------------ GMM: --------------------------
     if args.gmm is True:
         id_gmm = generate_unique_id(
-            [x_training, x_test, y_test, seed, n_components, n_samples, init_param_gmm, max_iter, n_init], lenght=5
+            [
+                x_training,
+                x_test,
+                y_test,
+                seed,
+                n_components,
+                n_samples,
+                init_param_gmm,
+                max_iter,
+                n_init,
+            ],
+            lenght=5,
         )
 
         # train the GMM model
         model_gmm = GaussianMixture(
-            n_components=n_components, random_state=seed, init_params=init_param_gmm, max_iter=max_iter, n_init=n_init
+            n_components=n_components,
+            random_state=seed,
+            init_params=init_param_gmm,
+            max_iter=max_iter,
+            n_init=n_init,
         )
         model_gmm.fit(x_training)
         # predict the pdf with GMM
@@ -234,7 +276,9 @@ def main():
 
     # ------------------------ PARZEN WINDOW: --------------------------
     if args.parzen:
-        id_parzen = generate_unique_id([x_training, x_test, y_test, seed, n_samples, parzen_h], lenght=5)
+        id_parzen = generate_unique_id(
+            [x_training, x_test, y_test, seed, n_samples, parzen_h], lenght=5
+        )
         model_parzen = ParzenWindow_Model(h=parzen_h)
         model_parzen.fit(training=x_training)
         pdf_predicted_parzen = model_parzen.predict(test=x_test)
@@ -257,7 +301,9 @@ def main():
 
     # ------------------------ KNN: --------------------------
     if args.knn:
-        id_knn = generate_unique_id([x_training, x_test, y_test, seed, n_samples, knn_k1], lenght=5)
+        id_knn = generate_unique_id(
+            [x_training, x_test, y_test, seed, n_samples, knn_k1], lenght=5
+        )
         model_knn = KNN_Model(k1=knn_k1)
         model_knn.fit(training=x_training)
         pdf_predicted_knn = model_knn.predict(test=x_test)
@@ -296,18 +342,51 @@ def main():
         ],
         lenght=5,
     )
-    model_mlp = GM_NN_Model(
-        parameters=mlp_params, n_components=n_components, bias=args.bias, init_params=init_param_mlp, seed=seed
+
+    gm_model_target = GaussianMixture(
+        n_components=n_components,
+        init_params=init_param_mlp,
+        random_state=seed,
+        n_init=n_init,
+        max_iter=max_iter,
     )
 
-    # make the model
-    if args.gpu == True:
-        device = "cuda"
-    else:
-        device = "cpu"
+    model_mlp = GM_NN_Model(
+        parameters=mlp_params,
+        n_components=n_components,
+        bias=args.bias,
+        init_params=init_param_mlp,
+        seed=seed,
+    )
+
+    # generate the id
+    unique_id = generate_unique_id(
+        [x_training, n_components, args.bias, init_param_mlp, seed], 5
+    )
+
+    # check if a saved target file exists:
+
+    base_dir = ["..", "data", "MLP"]
+    base_dir = check_base_dir(base_dir)
+
+    save_filename = f"train_mlp{'_Biased' if args.bias == True else '' }_{init_param_mlp}_C{n_components}"
+
+    if save_filename is not None:
+        save_filename = save_filename.split(".")[0]
+        save_filename = save_filename + "_" + unique_id + ".npz"
+        save_filename = os.path.join(base_dir, save_filename)
+
+    _, gmm_target_y = generate_target_MLP(
+        gm_model=gm_model_target,
+        X=x_training,
+        save_filename=save_filename,
+        bias=args.bias,
+        progress_bar=True,
+    )
 
     model_mlp.fit(
         x_training,
+        gmm_target_y,
         search_type="auto" if args.gridsearch == True else None,
         n_jobs=args.jobs,
         device=device,
@@ -347,13 +426,20 @@ def main():
         write_to_csv=args.save,
     )
 
+    with open("prova.json", "w") as f:
+        json.dump(model_mlp.history, f)
+
+    r2_mlp_history = [elem["r2"] for elem in model_mlp.history]
+    train_loss_mlp_history = [elem["train_loss"] for elem in model_mlp.history]
+    valid_loss_mlp_history = [elem["valid_loss"] for elem in model_mlp.history]
+
     # ----------------------------------------------------------------
     # plot the real pdf and the predicted pdf for GMM and MLP
     if pdf.dimension == 1:
         plot_AllInOne(
             x_training,
             x_test,
-            mlp_target=model_mlp.gmm_target_y if args.mlp_targets else None,
+            mlp_target=gmm_target_y if args.mlp_targets else None,
             pdf_predicted_knn=pdf_predicted_knn,
             pdf_predicted_parzen=pdf_predicted_parzen,
             pdf_predicted_mlp=pdf_predicted_mlp,

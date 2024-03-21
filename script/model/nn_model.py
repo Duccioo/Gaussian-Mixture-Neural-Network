@@ -4,11 +4,12 @@ import torch.nn.init as init
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import train_test_split
 from skorch import NeuralNet
-from skorch.callbacks import EarlyStopping, EpochScoring
+from skorch.callbacks import EarlyStopping, EpochScoring, LRScheduler, WandbLogger
 import numpy as np
 from attrs import define, field
 from sklearn.mixture import GaussianMixture
 import os
+import wandb
 
 
 # ---
@@ -41,30 +42,26 @@ class NeuralNetworkModular(nn.Module):
     ):
         super(NeuralNetworkModular, self).__init__()
         self.dropout = nn.Dropout(dropout)
-        self.layers = []
-        self.activation = []
+        self.layers = nn.ModuleList()
+        self.activation = nn.ModuleList()
+        self.batchNorm = nn.ModuleList()
 
-        # check if neurons are all paired with an activation function:
-        # if len(num_units) != len(activation):
-        #     raise ValueError("The number of units not match the number of activation functions")
-
-        self.layers.append(nn.Linear(input_features, hidden_layer[0][0], device=device))
+        self.layers.append(nn.Linear(input_features, hidden_layer[0][0]).to(device))
         self.activation.append(hidden_layer[0][1])
 
-        for i, (neurons, activation) in enumerate(hidden_layer):
-            if i != len(hidden_layer) - 1:
-                self.layers.append(nn.Linear(int(neurons), int(hidden_layer[i + 1][0]), device=device))
-                self.activation.append(activation)
+        for i in range(len(hidden_layer) - 1):
+            self.layers.append(
+                nn.Linear(hidden_layer[i][0], hidden_layer[i + 1][0]).to(device)
+            )
+            self.activation.append(hidden_layer[i + 1][1])
 
-        self.layers = nn.ModuleList(self.layers)
-        self.output_layer = nn.Linear(int(hidden_layer[-1][0]), output_features, device=device)
+        self.output_layer = nn.Linear(hidden_layer[-1][0], output_features).to(device)
 
         if last_activation == "lambda":
             self.last_activation = AdaptiveSigmoid()
         else:
             self.last_activation = last_activation
 
-        # layers initialization
         for layer in self.layers:
             init.xavier_normal_(layer.weight)
         init.xavier_normal_(self.output_layer.weight)
@@ -73,6 +70,7 @@ class NeuralNetworkModular(nn.Module):
         for layer, activation in zip(self.layers, self.activation):
             x = self.dropout(activation(layer(x)))
         x = self.output_layer(x)
+
         if self.last_activation is not None:
             x = self.last_activation(x)
         return x
@@ -88,11 +86,11 @@ class GM_NN_Model:
     base_dir: str = field(init=True, default=check_base_dir(BASE_DATA_DIR))
     seed: int = field(default=42, init=True)
 
-    gm_model: GaussianMixture = field(factory=GaussianMixture)
     nn_model: NeuralNet = NeuralNet(NeuralNetworkModular, nn.MSELoss)
     nn_best_params: dict = field(factory=dict)
     gmm_target_x: np.ndarray = field(init=True, default=np.array(None))
     gmm_target_y: np.ndarray = field(init=True, default=np.array(None))
+    history: dict = field(factory=dict)
 
     def __init__(
         self,
@@ -100,15 +98,18 @@ class GM_NN_Model:
         n_components: int = 4,
         bias: bool = False,
         init_params: str = "random",
-        base_dir: list or None = None,
-        seed: int or None = None,
+        base_dir: list = None,
+        seed: int = None,
     ):
         if base_dir is None:
             base_dir = check_base_dir(BASE_DATA_DIR)
         else:
             base_dir = check_base_dir(base_dir)
 
-        if isinstance(parameters, list) == False and parameters.get("criterion") == None:
+        if (
+            isinstance(parameters, list) == False
+            and parameters.get("criterion") == None
+        ):
             raise ValueError("Please specify a valid criterion!")
         criterion = parameters.get("criterion")
 
@@ -130,35 +131,38 @@ class GM_NN_Model:
             torch.manual_seed(self.seed)
         # setup the Gaussian Mixture Model:
 
-        self.gm_model = GaussianMixture(
-            n_components=self.n_components,
-            init_params=self.init_params,
-            random_state=self.seed,
-            n_init=10,
-            max_iter=100,
-        )
-
     def fit(
         self,
         X,
-        search_type: str or None = None,
+        Y: np.ndarray,
+        search_type: str = None,
         n_jobs: int = 1,
-        device: str or None = "cpu",
-        save_filename: str or None = None,
-        base_dir: str or None = None,
+        device: str = "cpu",
+        save_filename: str = None,
+        base_dir: str = None,
         patience: int = 20,
-        early_stop: bool or str = False,
+        early_stop: bool = False,
     ):
         if device == "auto" or device == None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
         callbacks = []
+        callbacks.append(
+            EpochScoring(scoring="r2", lower_is_better=False),
+        )
+        callbacks.append(LRScheduler(policy=torch.optim.lr_scheduler.LinearLR))
+
+        # wandb_run = wandb.init()
+
         if early_stop != False and early_stop in ["valid_loss", "r2"]:
+
             callbacks.append(
-                EpochScoring(scoring="r2", lower_is_better=False),
-            )
-            callbacks.append(
-                EarlyStopping(monitor=early_stop, patience=patience, load_best=False, lower_is_better=False),
+                EarlyStopping(
+                    monitor=early_stop,
+                    patience=patience,
+                    load_best=False,
+                    lower_is_better=False,
+                ),
             )
 
         if search_type == "auto":
@@ -174,6 +178,9 @@ class GM_NN_Model:
                     new_dict[key] = value[0]
                 else:
                     new_dict[key] = value
+
+            # wandb_run.config.update(new_dict)
+            # callbacks.append(WandbLogger(wandb_run))
 
             self.nn_model = NeuralNet(
                 NeuralNetworkModular,
@@ -213,28 +220,21 @@ class GM_NN_Model:
                 scoring=["r2"],
             )
 
-        # generate the id
-        unique_id = generate_unique_id([X, self.n_components, self.bias, self.init_params, self.seed], 5)
-
-        # check if a saved target file exists:
-        if base_dir is None:
-            base_dir = self.base_dir
-
-        if save_filename is not None:
-            save_filename = save_filename.split(".")[0]
-            save_filename = save_filename + "_" + unique_id + ".npz"
-            save_filename = os.path.join(base_dir, save_filename)
-
-        self.gmm_target_x, self.gmm_target_y = generate_target_MLP(
-            gm_model=self.gm_model, X=X, save_filename=save_filename, bias=self.bias
+        self.nn_model.fit(
+            torch.tensor(X, dtype=torch.float32),
+            torch.tensor(Y, dtype=torch.float32),
         )
+        # print("HISTORY", self.nn_model.history)
 
-        self.nn_model.fit(torch.tensor(X, dtype=torch.float32), torch.tensor(self.gmm_target_y, dtype=torch.float32))
+        # print(self.nn_model.history)
 
         if search_type == "gridsearch":
             self.nn_best_params = self.nn_model.best_params_
+            print(self.nn_model.cv_results_)
+
         else:
             self.nn_best_params = new_dict
+            self.history = self.nn_model.history
 
         return self.nn_model, self.gmm_target_y
 
@@ -254,7 +254,9 @@ if __name__ == "__main__":
     y = rate * np.exp(x * (-rate))
 
     # split the dataset into training and test sets
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=random_state)
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, test_size=test_size, random_state=random_state
+    )
     x_train = x_train.reshape(-1, 1)
     x_test = x_test.reshape(-1, 1)
     y_train = y_train.reshape(-1, 1)
@@ -268,7 +270,13 @@ if __name__ == "__main__":
         "module__last_activation": "lambda",
     }
 
-    model = GM_NN_Model(parameters=params, n_components=4, bias=False, init_params="random", seed=random_state)
+    model = GM_NN_Model(
+        parameters=params,
+        n_components=4,
+        bias=False,
+        init_params="random",
+        seed=random_state,
+    )
     m = model.fit(x_train, n_jobs=4, save_filename="prova.npy")
 
     # test the model

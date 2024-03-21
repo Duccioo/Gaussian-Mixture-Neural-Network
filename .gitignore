@@ -7,8 +7,9 @@ __pycache__/
 *.so
 
 data/MLP
-
-new_result
+prove_optuna_database/test_*
+wandb
+*.DS_Store
 # new_result_v3/img
 # Distribution / packaging
 .Python

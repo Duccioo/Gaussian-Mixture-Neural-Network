@@ -2,6 +2,7 @@ import numpy as np
 import os
 from attrs import define, field
 from scipy.stats import logistic, expon
+import numba as nb
 
 # ---
 from .utils import check_base_dir, generate_unique_id
@@ -10,7 +11,12 @@ from .config import MULTIVARIATE_1254
 
 
 def save_dataset(X, file: str or None = None, base_dir: str or None = None):
-    if base_dir is not None and os.path.exists(base_dir) and file is not None and not os.path.isfile(file):
+    if (
+        base_dir is not None
+        and os.path.exists(base_dir)
+        and file is not None
+        and not os.path.isfile(file)
+    ):
         file = os.path.join(base_dir, file)
 
     if isinstance(X, tuple) and len(X) > 1:
@@ -24,7 +30,12 @@ def save_dataset(X, file: str or None = None, base_dir: str or None = None):
 
 
 def load_dataset(file: str = None, base_dir: str = None):
-    if base_dir is not None and os.path.exists(base_dir) and file is not None and not os.path.isfile(file):
+    if (
+        base_dir is not None
+        and os.path.exists(base_dir)
+        and file is not None
+        and not os.path.isfile(file)
+    ):
         file = os.path.join(base_dir, file)
 
     if file is not None and os.path.isfile(file):
@@ -46,6 +57,11 @@ def calculate_pdf(
     random_state=False,
     X_input=None,
 ):
+    """
+    This function calculates the probability density function (PDF) for different types of distributions, such as logistic and exponential.
+    It takes in the type of distribution, parameters for the distribution, weight, random state, and input data.
+    It then returns the sample and the PDF value.
+    """
     sample = 0
     if type in ["logistic", "log"]:
         mean, scale = params["mean"], params["scale"]
@@ -61,36 +77,41 @@ def calculate_pdf(
 
     elif type in ["exponential", "exp", "expon"]:
         scale = params.get("scale") or params.get("mean") or params.get("rate")
-        negative = 1
-        if scale < 0:
-            scale = abs(scale)
-            negative = -1
+        negative = 1 if (scale >= 0) else -1
+        scale = abs(scale)
 
         shift = params.get("offset") or params.get("shift") or params.get("translation")
         if shift == None or shift == False:
             shift = 0
         if X_input is not None:
+            # print(weight)
             pdf = weight * expon.pdf(negative * X_input, loc=shift, scale=scale)
-            # pdf = weight * np.exp(scale * X_input + shift)
+            # pdf = np.multiply(
+            #     weight, expon.pdf(negative * X_input, loc=shift, scale=scale)
+            # )
+            # pdf = weight * np.exp(negative * X_input + shift) * scale
         else:
             sample = negative * (random_state.exponential(scale=scale, size=1) + shift)
             pdf = weight * expon.pdf(negative * sample[0], scale=scale, loc=-shift)
-            # pdf = weight * np.exp(scale * sample[0] + shift)
+            # pdf = weight * np.exp(scale * sample[0] + shift) * scale
 
     else:
         raise ValueError("Invalid PDF type. Supported types: 'exponential', 'logistic'")
-
     return sample, pdf
 
 
+# @nb.njit
 def generate_points_in_grid(start, end, step, dimensions):
     if isinstance(start, (int, float)):
         start = [start] * dimensions
     if isinstance(end, (int, float)):
         end = [end] * dimensions
+    
     ranges = [np.arange(s, e + step, step) for s, e in zip(start, end)]
-    grid = np.meshgrid(*ranges)
-    points = np.vstack([g.ravel() for g in grid]).T
+    grid = np.meshgrid(*ranges, indexing='ij')
+    
+    points = np.column_stack([g.flatten() for g in grid])
+    
     return points
 
 
@@ -132,7 +153,12 @@ class PDF:
         self.__attrs_init__(name, params, dimension, default)
 
     def generate_training(
-        self, n_samples, seed=None, save_filename=None, base_dir=None, scope=(-float("inf"), float("inf"))
+        self,
+        n_samples,
+        seed=None,
+        save_filename=None,
+        base_dir=None,
+        scope=(-float("inf"), float("inf")),
     ):
         # --- loading part ---
         # generate the id
@@ -145,14 +171,21 @@ class PDF:
         if save_filename is not None:
             save_filename_t = save_filename.split(".")[0]
             save_filename_t = save_filename_t + "_" + self.unique_id_training + ".npz"
-            training_X, training_Y = load_dataset(file=save_filename_t, base_dir=base_dir)
+            training_X, training_Y = load_dataset(
+                file=save_filename_t, base_dir=base_dir
+            )
 
-        if save_filename is not None and training_X is not None and training_Y is not None:
+        if (
+            save_filename is not None
+            and training_X is not None
+            and training_Y is not None
+        ):
             self.training_X, self.training_Y = training_X, training_Y
             return self.training_X, self.training_Y
 
         #  --- generating part ---
         elif self.default is not None:
+            print("provo a generare dataset...")
             self.load_default(n_samples=n_samples)
             return self.training_X, self.training_Y
 
@@ -165,15 +198,23 @@ class PDF:
             fake_Y = np.zeros((n_samples, len(self.params)))
             for d, params_dim in enumerate(self.params):
                 for i in range(len(samples)):
-                    mode = random_state.choice(len(params_dim), p=[elem["weight"] for elem in params_dim])
+                    mode = random_state.choice(
+                        len(params_dim), p=[elem["weight"] for elem in params_dim]
+                    )
                     sample, fake_Y1 = calculate_pdf(
-                        params_dim[mode]["type"], params_dim[mode], params_dim[mode]["weight"], random_state
+                        params_dim[mode]["type"],
+                        params_dim[mode],
+                        params_dim[mode]["weight"],
+                        random_state,
                     )
 
                     # check is the sample is outside the range (scope):
                     while sample < scope[0] or sample > scope[1]:
                         sample, fake_Y1 = calculate_pdf(
-                            params_dim[mode]["type"], params_dim[mode], params_dim[mode]["weight"], random_state
+                            params_dim[mode]["type"],
+                            params_dim[mode],
+                            params_dim[mode]["weight"],
+                            random_state,
                         )
 
                     fake_Y[i, d] += fake_Y1
@@ -187,7 +228,11 @@ class PDF:
             self.training_Y = self.training_Y.reshape(self.training_Y.shape[0], 1)
 
             if save_filename is not None:
-                save_dataset((self.training_X, self.training_Y), save_filename_t, base_dir=base_dir)
+                save_dataset(
+                    (self.training_X, self.training_Y),
+                    save_filename_t,
+                    base_dir=base_dir,
+                )
             return self.training_X, self.training_Y
 
     def load_default(self, n_samples):
@@ -196,20 +241,31 @@ class PDF:
             data_loaded = np.empty((n_samples, 2))
 
         with open(filename, "r") as file:
+            print(f"loading dataset from {filename}")
             lines = file.readlines()
             try:
                 data_loaded = [
-                    (float(line.strip().split(" ")[0]), float(line.strip().split(" ")[1])) for line in lines
+                    (
+                        float(line.strip().split(" ")[0]),
+                        float(line.strip().split(" ")[1]),
+                    )
+                    for line in lines
                 ][0:n_samples]
             except:
-                print(f"Number of samples requests ({n_samples}) bigger than {self.default} dataset!")
+                print(
+                    f"Number of samples requests ({n_samples}) bigger than {self.default} dataset!"
+                )
 
         self.training_X = np.array(data_loaded)[:, 0].reshape(-1, 1)
         self.training_Y = np.array(data_loaded)[:, 1].reshape(-1, 1)
         return self.training_X, self.training_Y
 
     def generate_test(
-        self, range_limit: tuple or None = None, stepper: float = 0.001, save_filename=None, base_dir=None
+        self,
+        range_limit: tuple or None = None,
+        stepper: float = 0.001,
+        save_filename=None,
+        base_dir=None,
     ):
         # generate the id
         self.unique_id_test = generate_unique_id([self.params, range_limit, stepper], 5)
@@ -232,7 +288,9 @@ class PDF:
             if range_limit is None and self.training_X.size != 0:
                 range_limit = (np.min(self.training_X), np.max(self.training_X))
 
-            self.test_X = generate_points_in_grid(range_limit[0], range_limit[1], stepper, dimensions=len(self.params))
+            self.test_X = generate_points_in_grid(
+                range_limit[0], range_limit[1], stepper, dimensions=len(self.params)
+            )
             fake_Y = np.zeros((len(self.test_X), len(self.params)))
 
             for d, params_dim in enumerate(self.params):
@@ -240,7 +298,9 @@ class PDF:
                     pdf_type = pdf_info["type"]
                     weight = pdf_info["weight"]
 
-                    _, fake_Y1 = calculate_pdf(pdf_type, pdf_info, weight, X_input=self.test_X[:, d])
+                    _, fake_Y1 = calculate_pdf(
+                        pdf_type, pdf_info, weight, X_input=self.test_X[:, d]
+                    )
                     fake_Y[:, d] += fake_Y1
 
             self.test_Y = fake_Y[:, 0]
@@ -250,7 +310,9 @@ class PDF:
             self.test_Y = self.test_Y.reshape((self.test_Y.shape[0], 1))
 
             if save_filename is not None:
-                save_dataset((self.test_X, self.test_Y), save_filename_t, base_dir=base_dir)
+                save_dataset(
+                    (self.test_X, self.test_Y), save_filename_t, base_dir=base_dir
+                )
             return self.test_X, self.test_Y
 
 

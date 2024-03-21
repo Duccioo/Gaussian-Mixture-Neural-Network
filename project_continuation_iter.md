@@ -138,3 +138,14 @@ results you get from a GMM with the same number c of components). Do not
 worry if the Gaussian components per se have a "strange" behavior in
 proximity of the borders of the deifnition domain (i.e., in proximity of 0
 and 10), just focus on the final model MLP + GMM."
+
+# Update 3 (28/11):
+
+- Aggiustare architetture più facili con tanh. Relu iniziale.
+- Print della loss sia generalizzata e sia della loss del training.
+- Componenti tra 10/20
+- Mescola un po' i seed
+- Quando faccio gli esperimenti segnarmi gli iperparametri in modo più leggibile.
+- Segnarsi gli esperimenti più interessanti e inviargli al massimo 1/2 immagini al prof ogni volta che c'è qualcosa
+
+- fare l'optuna dei parametri della gmm

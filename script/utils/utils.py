@@ -3,6 +3,7 @@ import datetime
 import csv
 import os
 import hashlib
+import inspect
 
 # ---
 from .config import BASE_RESULT_DIR
@@ -18,7 +19,7 @@ def write_result(
     r2_score: float = 0.0,
     n_layer: int or None = None,
     n_neurons: int or None = None,
-    epoch:int or None = None,
+    epoch: int or None = None,
     mse_score: float = 0.0,
     max_error_score: float = 0.0,
     evs_score: float = 0.0,
@@ -80,7 +81,13 @@ def plot_AllInOne(
     if pdf_predicted_knn is not None:
         plt.plot(test_sample, pdf_predicted_knn, label="KNN", color="brown", alpha=0.7)
     if pdf_predicted_parzen is not None:
-        plt.plot(test_sample, pdf_predicted_parzen, label="PARZEN", color="violet", alpha=0.75)
+        plt.plot(
+            test_sample,
+            pdf_predicted_parzen,
+            label="PARZEN",
+            color="violet",
+            alpha=0.75,
+        )
     if pdf_predicted_mlp is not None:
         plt.plot(test_sample, pdf_predicted_mlp, label="MLP", color="red")
 
@@ -90,7 +97,14 @@ def plot_AllInOne(
     if mlp_target is not None:
         plt.scatter(training_sample, mlp_target, label="Target (MLP)")
 
-    plt.hist(training_sample, bins=bins, density=density, alpha=0.5, label="Data", color="dimgray")
+    plt.hist(
+        training_sample,
+        bins=bins,
+        density=density,
+        alpha=0.5,
+        label="Data",
+        color="dimgray",
+    )
     plt.title(title)
     plt.xlabel("X")
     plt.ylabel("Probability Density")
@@ -165,8 +179,35 @@ def plot_histo(X):
 
 
 def check_base_dir(*args):
+    """
+    !!!!!Occhio prende la directory dove è definita questa funzione come directory principale e non dove viene chiamata la funzione!!!!!!
+    Given a variable number of arguments, this function constructs a full path by joining the absolute path of the current file with the provided arguments.
+
+    Args:
+        *args: Variable number of arguments representing the path segments. Each argument can be a string or a list of strings. If an argument is a list, it is joined with the previous path segment using os.path.join.
+
+    Returns:
+        str: The full path constructed by joining the absolute path of the current file with the provided arguments.
+
+    Raises:
+        None
+
+    Examples:
+        >>> check_base_dir("folder1", "folder2")
+        '/path/to/current/file/folder1/folder2'
+
+        >>> check_base_dir(["folder1", "folder2"], "folder3")
+        '/path/to/current/file/folder1/folder2/folder3'
+    """
+
     # take the full path of the folder
-    absolute_path = os.path.dirname(__file__)
+    # absolute_path = os.path.dirname(__file__)
+
+    caller_frame = inspect.currentframe().f_back
+    caller_filename = inspect.getframeinfo(caller_frame).filename
+    current_file_path = os.path.abspath(caller_filename)
+    absolute_path = os.path.dirname(current_file_path)
+    print("AHHHHHH", absolute_path)
 
     full_path = absolute_path
     # args = [item for sublist in args for item in sublist]
@@ -184,10 +225,11 @@ def check_base_dir(*args):
 
         else:
             full_path = os.path.join(full_path, path)
-
+        print("------_::", full_path)
         # check the path exists
         if not os.path.exists(full_path):
             os.makedirs(full_path)
+
 
     return full_path
 
@@ -230,7 +272,8 @@ def write_csv(
             csv_reader = csv.DictReader(csv_file)
             for row in csv_reader:
                 if (
-                    row[check_colomn.replace("_", " ").title()] == kwargs.get(check_colomn)
+                    row[check_colomn.replace("_", " ").title()]
+                    == kwargs.get(check_colomn)
                     and kwargs.get(check_colomn) in log_entry
                 ):
                     return
@@ -255,4 +298,6 @@ if __name__ == "__main__":
     print(absolute_path)
     print(full_path)
     # check_base_dir("prova", "dati", ["prova1"])
-    write_result(experiment_type="AAA", experiment_params="No", log_name_file="test.csv")
+    write_result(
+        experiment_type="AAA", experiment_params="No", log_name_file="test.csv"
+    )
