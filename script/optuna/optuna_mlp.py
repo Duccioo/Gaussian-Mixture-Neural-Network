@@ -3,6 +3,11 @@ from optuna.trial import TrialState
 import torch
 
 # ---
+import sys
+from os import path
+
+a = sys.path.append((path.dirname(path.dirname(path.abspath(__file__)))))
+
 from model.optuna_model import objective_MLP_allin_gmm
 
 
@@ -49,7 +54,7 @@ if __name__ == "__main__":
         lambda trial: objective_MLP_allin_gmm(trial, params),
         n_trials=300,
         timeout=None,
-        n_jobs=2,
+        n_jobs=1,
         show_progress_bar=True,
     )
 

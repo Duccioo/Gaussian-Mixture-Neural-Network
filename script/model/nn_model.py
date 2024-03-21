@@ -14,7 +14,6 @@ import wandb
 
 # ---
 from utils.utils import check_base_dir, generate_unique_id
-from model.gm_model import generate_target_MLP
 
 BASE_DATA_DIR = ["..", "..", "data", "MLP"]
 

@@ -207,7 +207,7 @@ def check_base_dir(*args):
     caller_filename = inspect.getframeinfo(caller_frame).filename
     current_file_path = os.path.abspath(caller_filename)
     absolute_path = os.path.dirname(current_file_path)
-    print("AHHHHHH", absolute_path)
+    # print("AHHHHHH", absolute_path)
 
     full_path = absolute_path
     # args = [item for sublist in args for item in sublist]
@@ -225,11 +225,10 @@ def check_base_dir(*args):
 
         else:
             full_path = os.path.join(full_path, path)
-        print("------_::", full_path)
+        # print("------_::", full_path)
         # check the path exists
         if not os.path.exists(full_path):
             os.makedirs(full_path)
-
 
     return full_path
 
