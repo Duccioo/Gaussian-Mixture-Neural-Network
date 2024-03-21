@@ -200,13 +200,15 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params):
         seed = params["seed"]
 
     if isinstance(params["n_init"], (list, tuple)):
-        n_init = trial.suggest_int("n_init", params["n_init"][0], params["n_init"][1])
+        n_init = trial.suggest_int(
+            "n_init", params["n_init"][0], params["n_init"][1], step=10
+        )
     else:
         n_init = params["n_init"]
 
     if isinstance(params["max_iter"], (list, tuple)):
         max_iter = trial.suggest_int(
-            "max_iter", params["max_iter"][0], params["max_iter"][1]
+            "max_iter", params["max_iter"][0], params["max_iter"][1], step=10
         )
     else:
         max_iter = params["max_iter"]
@@ -239,7 +241,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params):
 
     gm_model = GaussianMixture(
         n_components=n_components,
-        init_params="kmeans",
+        init_params=init_params_gmm,
         random_state=seed,
         n_init=n_init,
         max_iter=max_iter,
@@ -250,7 +252,11 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params):
         [x_training, n_components, bias, init_params_gmm, seed], 5
     )
 
-    _, gmm_target_y = gen_target_with_gm(gm_model=gm_model, X=x_training)
+    _, gmm_target_y = gen_target_with_gm(
+        gm_model=gm_model,
+        X=x_training,
+        save_filename=f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}.npz",
+    )
 
     r2_score = objective_MLP(
         trial, x_training, gmm_target_y, x_test, y_test, params, DEVICE
