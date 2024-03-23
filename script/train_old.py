@@ -12,6 +12,7 @@ from sklearn.mixture import GaussianMixture
 from utils.data_manager import PDF
 from model.nn_model import train_old_style, NeuralNetworkModular
 from model.gm_model import gen_target_with_gm_parallel
+from utils.utils import set_seed
 
 
 if __name__ == "__main__":
@@ -27,8 +28,11 @@ if __name__ == "__main__":
     n_init = 60
     max_iter = 80
 
-    # set seed
-    torch.manual_seed(seed)
+    #set seed
+    set_seed(42)
+    # torch.manual_seed(seed)
+
+
 
     # parametri della rete neurale:
     epochs = 658
@@ -39,7 +43,7 @@ if __name__ == "__main__":
 
     # load parameters
     dropout = 0.01
-    hidden_layer = [(52, nn.ReLU()), (10, nn.Tanh()), (36, nn.ReLU()), (21, nn.ReLU())]
+    hidden_layer = [(52, nn.ReLU()), (10, nn.Tanh()), (36, nn.ReLU()),]
     last_activation = "lambda"
 
     X_train, Y_train = pdf.generate_training(n_samples=n_samples, seed=seed)

@@ -18,7 +18,13 @@ import argparse
 
 # ----
 from utils.data_manager import PDF
-from utils.utils import plot_AllInOne, write_result, generate_unique_id, check_base_dir
+from utils.utils import (
+    plot_AllInOne,
+    write_result,
+    generate_unique_id,
+    check_base_dir,
+    set_seed,
+)
 from model.nn_model import GM_NN_Model
 from model.parzen_model import ParzenWindow_Model
 from model.knn_model import KNN_Model
@@ -102,6 +108,7 @@ def test_and_log(
 
 
 def main():
+
     # command line parsing
     parser = argparse.ArgumentParser(description="Project for AI Exam")
     parser.add_argument("--pdf", type=str, default="default")
@@ -151,13 +158,11 @@ def main():
     mlp_params = {
         "criterion": [nn.HuberLoss()],
         "max_epochs": [658],
-        "batch_size": [37, 32],
-        "lr": [
-            0.0010039468848053604,
-        ],
+        "batch_size": [27],
+        "lr": [0.0010039468848053604],
         "module__last_activation": ["lambda"],
         "module__hidden_layer": [
-            [(52, nn.ReLU()), (10, nn.Tanh()), (36, nn.ReLU()), (21, nn.ReLU())],
+            [(52, nn.ReLU()), (10, nn.Tanh()), (36, nn.ReLU())],
             [(60, nn.ReLU()), (60, nn.ReLU()), (10, nn.ReLU())],
             [(54, nn.ReLU()), (57, nn.ReLU())],
             [(32, nn.ReLU()), (16, nn.Tanh()), (16, nn.Tanh()), (8, nn.Tanh())],
@@ -326,6 +331,7 @@ def main():
         pdf_predicted_knn = None
 
     # ------------------------ GMM + NN: --------------------------
+
     id_mlp = generate_unique_id(
         [
             x_training,

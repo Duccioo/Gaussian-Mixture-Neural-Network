@@ -12,7 +12,7 @@ import os
 import random
 
 # ---
-from utils.utils import check_base_dir, generate_unique_id
+from utils.utils import check_base_dir, generate_unique_id, set_seed
 
 BASE_DATA_DIR = ["..", "..", "data", "MLP"]
 
@@ -126,7 +126,9 @@ class GM_NN_Model:
 
     def __attrs_post_init__(self):
         if self.seed is not None:
-            torch.manual_seed(self.seed)
+            
+            set_seed(self.seed)
+            # torch.manual_seed(self.seed)
         # setup the Gaussian Mixture Model:
 
     def fit(
@@ -184,9 +186,10 @@ class GM_NN_Model:
                 verbose=1,
                 device=device,
                 module__device=device,
-                module__input_features=X.shape[1],
+                module__input_features=1,
                 callbacks=callbacks,
             )
+            
 
         elif search_type == "gridsearch":
             new_dict = {}

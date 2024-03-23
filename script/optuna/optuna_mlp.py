@@ -8,13 +8,12 @@ import os
 
 
 # ---
-a = sys.path.append((os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# a = sys.path.append((os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from model.optuna_model import objective_MLP_allin_gmm
 
 
-if __name__ == "__main__":
-
+def start_optuna_mlp():
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     params = {
@@ -80,3 +79,8 @@ if __name__ == "__main__":
     print("  Params: ")
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
+
+
+
+if __name__ == "__main__":
+    start_optuna_mlp()
