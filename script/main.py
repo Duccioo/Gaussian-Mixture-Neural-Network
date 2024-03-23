@@ -1,9 +1,7 @@
 import numpy as np
-import numba as nb
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import json
 import os
 
 from sklearn.metrics import (
@@ -36,7 +34,6 @@ def calculate_kl_divergence(true_pdf, predicted_pdf):
     return np.mean(kl_divergence)
 
 
-@nb.njit()
 def calculate_ise(true_pdf, predicted_pdf, bin_width=0.01):
     # Calcola le aree dei rettangoli tra le due distribuzioni
     rectangle_areas = (true_pdf - predicted_pdf) ** 2 * bin_width
@@ -91,12 +88,8 @@ def test_and_log(
             max_error_score=round(max_error(y_true, y_predicted), round_number),
             n_layer=n_layer,
             n_neurons=n_neurons,
-            mse_score=round(
-                np.sqrt(mean_squared_error(y_true, y_predicted)), round_number
-            ),
-            evs_score=round(
-                explained_variance_score(y_true, y_predicted), round_number
-            ),
+            mse_score=round(np.sqrt(mean_squared_error(y_true, y_predicted)), round_number),
+            evs_score=round(explained_variance_score(y_true, y_predicted), round_number),
             ise_score=round(calculate_ise(y_true, y_predicted), round_number),
             k1_score=round(calculate_kl_divergence(y_true, y_predicted), round_number),
             epoch=epoch,
@@ -179,9 +172,7 @@ def main():
     }
 
     # generate the sample from a known distribution:
-    pdf_exponential = PDF(
-        {"type": "exponential", "mean": 0.6}, name="exponential standard"
-    )
+    pdf_exponential = PDF({"type": "exponential", "mean": 0.6}, name="exponential standard")
 
     pdf_logistic_multimodal = PDF(
         [
@@ -282,9 +273,7 @@ def main():
 
     # ------------------------ PARZEN WINDOW: --------------------------
     if args.parzen:
-        id_parzen = generate_unique_id(
-            [x_training, x_test, y_test, seed, n_samples, parzen_h], lenght=5
-        )
+        id_parzen = generate_unique_id([x_training, x_test, y_test, seed, n_samples, parzen_h], lenght=5)
         model_parzen = ParzenWindow_Model(h=parzen_h)
         model_parzen.fit(training=x_training)
         pdf_predicted_parzen = model_parzen.predict(test=x_test)
@@ -307,9 +296,7 @@ def main():
 
     # ------------------------ KNN: --------------------------
     if args.knn:
-        id_knn = generate_unique_id(
-            [x_training, x_test, y_test, seed, n_samples, knn_k1], lenght=5
-        )
+        id_knn = generate_unique_id([x_training, x_test, y_test, seed, n_samples, knn_k1], lenght=5)
         model_knn = KNN_Model(k1=knn_k1)
         model_knn.fit(training=x_training)
         pdf_predicted_knn = model_knn.predict(test=x_test)
@@ -367,9 +354,7 @@ def main():
     )
 
     # generate the id
-    unique_id = generate_unique_id(
-        [x_training, n_components, args.bias, init_param_mlp, seed], 5
-    )
+    unique_id = generate_unique_id([x_training, n_components, args.bias, init_param_mlp, seed], 5)
 
     # check if a saved target file exists:
 
