@@ -1,4 +1,4 @@
-BASE_RESULT_DIR = ["..", "..", "new_result_v5"]
+BASE_RESULT_DIR = ["..", "..", "result"]
 BASE_DATA_DIR = ["..", "..", "data"]
 
 

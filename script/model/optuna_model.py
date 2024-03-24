@@ -15,6 +15,7 @@ import os
 from model.nn_model import AdaptiveSigmoid
 from utils.data_manager import PDF
 from model.gm_model import gen_target_with_gm_parallel
+from model.parzen_model import ParzenWindow_Model, gen_target_with_parzen_parallel
 from utils.utils import generate_unique_id, set_seed
 
 
@@ -156,7 +157,7 @@ def objective_MLP(
     return r2_value
 
 
-def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir):
+def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
     """
     A function to optimize the parameters of a multilayer perceptron (MLP) using Gaussian Mixture Model (GMM) for the given dataset parameters.
 
@@ -190,8 +191,6 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir):
 
     # è un wrapper del objective_MLP per scegliere anche i parametri del dataset
 
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
     pdf = PDF(default="MULTIVARIATE_1254")
     bias = False
     stepper_x_test = 0.01  # genero con la multivariate circa 1000 esempi
@@ -203,27 +202,6 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir):
 
     set_seed(seed)
 
-    if isinstance(params["n_init"], (list, tuple)):
-        n_init = trial.suggest_int(
-            "n_init", params["n_init"][0], params["n_init"][1], step=10
-        )
-    else:
-        n_init = params["n_init"]
-
-    if isinstance(params["max_iter"], (list, tuple)):
-        max_iter = trial.suggest_int(
-            "max_iter", params["max_iter"][0], params["max_iter"][1], step=10
-        )
-    else:
-        max_iter = params["max_iter"]
-
-    if isinstance(params["n_components"], (list, tuple)):
-        n_components = trial.suggest_int(
-            "n_components", params["n_components"][0], params["n_components"][1]
-        )
-    else:
-        n_components = params["n_components"]
-
     if isinstance(params["n_samples"], (list, tuple)):
         n_samples = trial.suggest_int(
             "n_samples", params["n_samples"][0], params["n_samples"][1]
@@ -231,154 +209,84 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir):
     else:
         n_samples = params["n_samples"]
 
-    if isinstance(params["init_params_gmm"], (list, tuple)):
-        init_params_gmm = trial.suggest_categorical(
-            "init_params_gmm", params["init_params_gmm"]
-        )
-    else:
-        init_params_gmm = params["init_params_gmm"]
-
     x_training, _ = pdf.generate_training(n_samples=n_samples, seed=seed)
 
     # generate the data for plotting the pdf
     x_test, y_test = pdf.generate_test(stepper=stepper_x_test)
 
-    gm_model = GaussianMixture(
-        n_components=n_components,
-        init_params=init_params_gmm,
-        random_state=seed,
-        n_init=n_init,
-        max_iter=max_iter,
-    )
+    if params["target_type"] == "GMM":
 
-    # generate the id
-    unique_id_gmm_target = generate_unique_id(
-        [x_training, n_components, bias, init_params_gmm, seed], 5
-    )
+        if isinstance(params["n_init"], (list, tuple)):
+            n_init = trial.suggest_int(
+                "n_init", params["n_init"][0], params["n_init"][1], step=10
+            )
+        else:
+            n_init = params["n_init"]
 
-    file_name = f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}.npz"
-    file_path = os.path.join(tmp_dir, file_name)
+        if isinstance(params["max_iter"], (list, tuple)):
+            max_iter = trial.suggest_int(
+                "max_iter", params["max_iter"][0], params["max_iter"][1], step=10
+            )
+        else:
+            max_iter = params["max_iter"]
 
-    _, gmm_target_y = gen_target_with_gm_parallel(
-        gm_model=gm_model,
-        X=x_training,
-        save_filename=file_path,
-        progress_bar=True,
-        n_jobs=-1,
-    )
+        if isinstance(params["n_components"], (list, tuple)):
+            n_components = trial.suggest_int(
+                "n_components", params["n_components"][0], params["n_components"][1]
+            )
+        else:
+            n_components = params["n_components"]
+
+        if isinstance(params["init_params_gmm"], (list, tuple)):
+            init_params_gmm = trial.suggest_categorical(
+                "init_params_gmm", params["init_params_gmm"]
+            )
+        else:
+            init_params_gmm = params["init_params_gmm"]
+
+        gm_model = GaussianMixture(
+            n_components=n_components,
+            init_params=init_params_gmm,
+            random_state=seed,
+            n_init=n_init,
+            max_iter=max_iter,
+        )
+
+        # generate the id
+        unique_id_gmm_target = generate_unique_id(
+            [x_training, n_components, bias, init_params_gmm, seed], 5
+        )
+        file_name = f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}.npz"
+        file_path = os.path.join(tmp_dir, file_name)
+
+        _, gen_target_y = gen_target_with_gm_parallel(
+            gm_model=gm_model,
+            X=x_training,
+            save_filename=file_path,
+            progress_bar=True,
+            n_jobs=-1,
+        )
+
+    elif params["target_type"] == "PARZEN":
+        if isinstance(params["h"], (list, tuple)):
+            h = trial.suggest_float("h", params["h"][0], params["h"][1])
+        else:
+            h = params["h"]
+
+        file_name = f"target_parzen_S{n_samples}_H{h}.npz"
+        file_path = os.path.join(tmp_dir, file_name)
+        parzen_model = ParzenWindow_Model(h=h)
+
+        _, gen_target_y = gen_target_with_parzen_parallel(
+            parzen_model,
+            X=x_training,
+            save_filename=file_path,
+            progress_bar=True,
+            n_jobs=-1,
+        )
 
     r2_score = objective_MLP(
-        trial, x_training, gmm_target_y, x_test, y_test, params, DEVICE
-    )
-
-    return r2_score
-
-
-def objective_MLP_allin_parzen(trial: optuna.Trial, params):
-    """
-    A function to optimize the parameters of a multilayer perceptron (MLP) using Gaussian Mixture Model (GMM) for the given dataset parameters.
-
-    Args:
-        trial (optuna.Trial): An Optuna trial object used to manage the optimization process.
-        params (dict): A dictionary containing the parameters for the dataset and MLP optimization.
-            It should contain the following keys:
-                for the dataset parameters:
-                - 'seed': tuple of two integers representing the range of seed values.
-                - 'n_samples': tuple of two integers representing the range of n_samples values.
-                - 'h': tuple of two integers representing the range of h values.
-
-                for the model params:
-                - 'batch_size': tuple of two integers representing the range of batch_size values.
-                - 'optimizer': list of strings representing the optimizer choices (e.g., 'Adam', 'RMSprop', 'SGD').
-                - 'learning_rate': tuple of two floats representing the range of learning_rate values.
-                - 'loss': list of strings representing the loss function choices (e.g., 'mse', 'mae', 'huber').
-                - 'epoch': tuple of two integers representing the range of epoch values.
-                - 'range_dropout': tuple of two floats representing the range of dropout values.
-                - 'n_layers': tuple of two integers representing the range of n_layers values.
-                - 'range_neurons': tuple of two integers representing the range of neurons values.
-                - 'suggest_activation': list of strings representing the activation function choices (e.g., 'tanh', 'sigmoid', 'relu').
-                - 'suggest_last_activation': list of strings representing the last activation function choices (e.g., 'lambda', 'sigmoid', 'relu').
-
-    Returns:
-        float: The R-squared score obtained after optimizing the MLP with GMM for the given dataset parameters.
-    """
-
-    # è un wrapper del objective_MLP per scegliere anche i parametri del dataset
-
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-    pdf = PDF(default="MULTIVARIATE_1254")
-    bias = False
-    stepper_x_test = 0.01  # genero con la multivariate circa 1000 esempi
-
-    if isinstance(params["seed"], (list, tuple)):
-        seed = trial.suggest_int("seed", params["seed"][0], params["seed"][1])
-    else:
-        seed = params["seed"]
-
-    if isinstance(params["n_init"], (list, tuple)):
-        n_init = trial.suggest_int(
-            "n_init", params["n_init"][0], params["n_init"][1], step=10
-        )
-    else:
-        n_init = params["n_init"]
-
-    if isinstance(params["max_iter"], (list, tuple)):
-        max_iter = trial.suggest_int(
-            "max_iter", params["max_iter"][0], params["max_iter"][1], step=10
-        )
-    else:
-        max_iter = params["max_iter"]
-
-    if isinstance(params["n_components"], (list, tuple)):
-        n_components = trial.suggest_int(
-            "n_components", params["n_components"][0], params["n_components"][1]
-        )
-    else:
-        n_components = params["n_components"]
-
-    if isinstance(params["n_samples"], (list, tuple)):
-        n_samples = trial.suggest_int(
-            "n_samples", params["n_samples"][0], params["n_samples"][1]
-        )
-    else:
-        n_samples = params["n_samples"]
-
-    if isinstance(params["init_params_gmm"], (list, tuple)):
-        init_params_gmm = trial.suggest_categorical(
-            "init_params_gmm", params["init_params_gmm"]
-        )
-    else:
-        init_params_gmm = params["init_params_gmm"]
-
-    x_training, _ = pdf.generate_training(n_samples=n_samples, seed=seed)
-
-    # generate the data for plotting the pdf
-    x_test, y_test = pdf.generate_test(stepper=stepper_x_test)
-
-    gm_model = GaussianMixture(
-        n_components=n_components,
-        init_params=init_params_gmm,
-        random_state=seed,
-        n_init=n_init,
-        max_iter=max_iter,
-    )
-
-    # generate the id
-    unique_id_gmm_target = generate_unique_id(
-        [x_training, n_components, bias, init_params_gmm, seed], 5
-    )
-
-    _, gmm_target_y = gen_target_with_gm_parallel(
-        gm_model=gm_model,
-        X=x_training,
-        save_filename=f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}.npz",
-        progress_bar=True,
-        n_jobs=-1,
-    )
-
-    r2_score = objective_MLP(
-        trial, x_training, gmm_target_y, x_test, y_test, params, DEVICE
+        trial, x_training, gen_target_y, x_test, y_test, params, device
     )
 
     return r2_score

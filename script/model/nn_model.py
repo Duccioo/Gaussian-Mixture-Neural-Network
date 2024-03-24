@@ -44,16 +44,14 @@ class NeuralNetworkModular(nn.Module):
         self.activation = nn.ModuleList()
         self.batchNorm = nn.ModuleList()
 
-        self.layers.append(nn.Linear(input_features, hidden_layer[0][0]).to(device))
+        self.layers.append(nn.Linear(input_features, hidden_layer[0][0]))
         self.activation.append(hidden_layer[0][1])
 
         for i in range(len(hidden_layer) - 1):
-            self.layers.append(
-                nn.Linear(hidden_layer[i][0], hidden_layer[i + 1][0]).to(device)
-            )
+            self.layers.append(nn.Linear(hidden_layer[i][0], hidden_layer[i + 1][0]))
             self.activation.append(hidden_layer[i + 1][1])
 
-        self.output_layer = nn.Linear(hidden_layer[-1][0], output_features).to(device)
+        self.output_layer = nn.Linear(hidden_layer[-1][0], output_features)
 
         if last_activation == "lambda":
             self.last_activation = AdaptiveSigmoid()
@@ -126,7 +124,7 @@ class GM_NN_Model:
 
     def __attrs_post_init__(self):
         if self.seed is not None:
-            
+
             set_seed(self.seed)
             # torch.manual_seed(self.seed)
         # setup the Gaussian Mixture Model:
@@ -189,7 +187,6 @@ class GM_NN_Model:
                 module__input_features=1,
                 callbacks=callbacks,
             )
-            
 
         elif search_type == "gridsearch":
             new_dict = {}

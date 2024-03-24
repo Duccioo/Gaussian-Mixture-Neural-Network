@@ -28,13 +28,17 @@ def start_optuna_mlp():
         "range_dropout": (0.00, 0.2),
         "suggest_activation": ("relu", "tanh"),
         "suggest_last_activation": ("lambda", None),
-        # GMM and DATASET PARAMS:
-        "n_samples": 100,
+        # GMM PARAMS:
         "n_components": (2, 15),
         "init_params_gmm": ("k-means++", "kmeans"),
-        "seed": 42,
         "n_init": 60,
         "max_iter": 80,
+        # PARZEN PARAMS:
+        "h": (0.001, 3),
+        # DATASET PARAMS:
+        "n_samples": 100,
+        "seed": 42,
+        "target_type": "GMM",
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
@@ -79,7 +83,6 @@ def start_optuna_mlp():
     print("  Params: ")
     for key, value in trial.params.items():
         print("    {}: {}".format(key, value))
-
 
 
 if __name__ == "__main__":

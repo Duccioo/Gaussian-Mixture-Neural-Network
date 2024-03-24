@@ -130,7 +130,7 @@ def main():
 
     # Parameters:
     # -- data parameters
-    seed = 42
+    seed = None
     n_samples = args.samples  # number of samples to generate from the exp distribution
     stepper_x_test = 0.01  # step to take on the limit_test for generate the test data
 
@@ -150,12 +150,12 @@ def main():
     patience = 20
     mlp_params = {
         "criterion": [nn.HuberLoss()],
-        "max_epochs": [658],
-        "batch_size": [27],
-        "lr": [0.0010039468848053604],
-        "module__last_activation": ["lambda"],
+        "max_epochs": [794],
+        "batch_size": [51],
+        "lr": [0.0026942],
+        "module__last_activation": [None,"lambda"],
         "module__hidden_layer": [
-            [(52, nn.ReLU()), (10, nn.Tanh()), (36, nn.ReLU())],
+            [(38, nn.ReLU()), (7, nn.Tanh())],
             [(60, nn.ReLU()), (60, nn.ReLU()), (10, nn.ReLU())],
             [(54, nn.ReLU()), (57, nn.ReLU())],
             [(32, nn.ReLU()), (16, nn.Tanh()), (16, nn.Tanh()), (8, nn.Tanh())],
@@ -166,9 +166,9 @@ def main():
             # [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
             # [(128, nn.ReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
         ],
-        "optimizer": [optim.RMSprop],
+        "optimizer": [optim.Adam],
         # "optimizer__weight_decay": [0.001],
-        "module__dropout": [0.01],
+        "module__dropout": [0.00],
     }
 
     # generate the sample from a known distribution:
@@ -371,7 +371,7 @@ def main():
     _, gmm_target_y = gen_target_with_gm_parallel(
         gm_model=gm_model_target,
         X=x_training,
-        save_filename=save_filename,
+        #save_filename=save_filename,
         bias=args.bias,
         progress_bar=True,
         n_jobs=3,

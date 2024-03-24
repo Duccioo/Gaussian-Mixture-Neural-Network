@@ -6,7 +6,12 @@ from rich import box
 from rich.console import Console
 from rich.table import Table
 
+from attrs import define, field
 
+# ---
+from .utils import check_base_dir, generate_unique_id
+from .config import BASE_DATA_DIR
+from .config import MULTIVARIATE_1254
 
 
 def console_bullet_list(console, list_elem: list = []):
@@ -42,26 +47,30 @@ def console_matrix(console, matrix: list = [], inplace: bool = True):
     return table
 
 
+@define(slots=True)
 class Summary:
-    def __init__(self, directory="model_saved_prova", model_type="GraphVAE_BASE"):
-        self.directory_base = directory
-        self.model_type = model_type
 
-        if os.path.exists(self.directory_base):
-            if any(
-                file.endswith("FINAL.pth") for file in os.listdir(self.directory_base)
-            ):
-                self.directory_base += "_1"
-                os.makedirs(self.directory_base)
+    base_dir: str = field(init=True, default=check_base_dir(BASE_DATA_DIR))
+    model_type: str = field(default="Parzen Windows")
+
+    def __init__(self, directory="result_parzen", model_type="Parzen Windows"):
+
+
+        if os.path.exists(directory):
+            if any(file.endswith("FINAL.pth") for file in os.listdir(directory)):
+                directory += "_1"
+                os.makedirs(directory)
         else:
-            os.makedirs(self.directory_base)
+            os.makedirs(directory)
 
-        self.directory_checkpoint = os.path.join(self.directory_base, "checkpoints")
+        self.directory_checkpoint = os.path.join(directory, "checkpoints")
         if not os.path.exists(self.directory_checkpoint):
             os.makedirs(self.directory_checkpoint)
-        self.directory_log = os.path.join(self.directory_base, "logs")
+        self.directory_log = os.path.join(directory, "logs")
         if not os.path.exists(self.directory_log):
             os.makedirs(self.directory_log)
+
+        self.__attrs_init__(directory, model_type)
 
     def save_model_json(self, model_params: list = [], file_name="hyperparams.json"):
         # salvo gli iperparametri:

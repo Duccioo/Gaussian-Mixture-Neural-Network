@@ -1,3 +1,5 @@
+import os
+
 from matplotlib import pyplot as plt
 import seaborn as sns
 
@@ -9,7 +11,7 @@ from optuna.trial import TrialState
 
 # ---
 from model.parzen_model import ParzenWindow_Model
-from utils.data_manager import PDF
+from utils.data_manager import load_multivariate_dataset
 
 
 def objective_parzen(trial: optuna.Trial, params, X_train, X_test, Y_test):
@@ -18,7 +20,7 @@ def objective_parzen(trial: optuna.Trial, params, X_train, X_test, Y_test):
         "n_samples", params["n_samples"][0], params["n_samples"][1]
     )
     seed = trial.suggest_int("seed", params["seed"][0], params["seed"][1])
-    X_train, Y_train, X_test, Y_test = load_dataset(n_samples, seed)
+    X_train, Y_train, X_test, Y_test = load_multivariate_dataset(n_samples, seed)
 
     model_parzen = ParzenWindow_Model(h=parzen_h)
     model_parzen.fit(training=X_train)
@@ -31,20 +33,16 @@ def objective_parzen(trial: optuna.Trial, params, X_train, X_test, Y_test):
     return r2_value
 
 
-def load_dataset(n_samples, seed):
-    pdf = PDF(default="MULTIVARIATE_1254")
-    stepper_x_test = 0.01
-    X_train, Y_train = pdf.generate_training(n_samples=n_samples, seed=seed)
-
-    # generate the data for plotting the pdf
-    X_test, Y_test = pdf.generate_test(stepper=stepper_x_test)
-
-    return X_train, Y_train, X_test, Y_test
-
-
 if __name__ == "__main__":
 
     params = {"h": [0.1, 1.0], "n_samples": [100, 400], "seed": [1, 100]}
+    
+    # create the folder for the project:
+    experiment_name = "perfect Parzen Window Optuna"
+
+    if not os.path.exists(experiment_name):
+        os.makedirs(experiment_name)
+    
 
     # optuna.logging.get_logger("optuna")
     study_name = f"perfect Parzen Window"  # Unique identifier of the study.
@@ -90,7 +88,9 @@ if __name__ == "__main__":
     n_samples = 389
 
     seed = 58
-    X_train, Y_train, X_test, Y_test = load_dataset(n_samples=n_samples, seed=seed)
+    X_train, Y_train, X_test, Y_test = load_multivariate_dataset(
+        n_samples=n_samples, seed=seed
+    )
 
     model_parzen = ParzenWindow_Model(h=parzen_h)
     model_parzen.fit(training=X_train)

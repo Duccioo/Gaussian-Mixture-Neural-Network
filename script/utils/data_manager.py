@@ -10,7 +10,7 @@ from .config import BASE_DATA_DIR
 from .config import MULTIVARIATE_1254
 
 
-def save_dataset(X, file: str or None = None, base_dir: str or None = None):
+def save_dataset(X, file: str = None, base_dir: str = None):
     if (
         base_dir is not None
         and os.path.exists(base_dir)
@@ -106,12 +106,12 @@ def generate_points_in_grid(start, end, step, dimensions):
         start = [start] * dimensions
     if isinstance(end, (int, float)):
         end = [end] * dimensions
-    
+
     ranges = [np.arange(s, e + step, step) for s, e in zip(start, end)]
-    grid = np.meshgrid(*ranges, indexing='ij')
-    
+    grid = np.meshgrid(*ranges, indexing="ij")
+
     points = np.column_stack([g.flatten() for g in grid])
-    
+
     return points
 
 
@@ -314,6 +314,30 @@ class PDF:
                     (self.test_X, self.test_Y), save_filename_t, base_dir=base_dir
                 )
             return self.test_X, self.test_Y
+
+
+def load_multivariate_dataset(n_samples, seed, stepper_x_test=0.01):
+    """
+    Generate a multivariate dataset for training and testing.
+
+    Parameters:
+    - n_samples: int, number of samples to generate for training
+    - seed: int, seed for random number generation
+    - stepper_x_test: float, optional, increment value for generating test data along X-axis
+
+    Returns:
+    - X_train: array, training dataset inputs
+    - Y_train: array, training dataset outputs
+    - X_test: array, test dataset inputs
+    - Y_test: array, test dataset outputs
+    """
+    pdf = PDF(default="MULTIVARIATE_1254")
+    X_train, Y_train = pdf.generate_training(n_samples=n_samples, seed=seed)
+
+    # generate the data for plotting the pdf
+    X_test, Y_test = pdf.generate_test(stepper=stepper_x_test)
+
+    return X_train, Y_train, X_test, Y_test
 
 
 if __name__ == "__main__":
