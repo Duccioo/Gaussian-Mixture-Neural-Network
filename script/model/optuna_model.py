@@ -21,22 +21,16 @@ from utils.utils import generate_unique_id, set_seed
 
 def define_MLP(trial: optuna.Trial, params: dict = {}):
     # We optimize the number of layers, hidden units and dropout ratio in each layer.
-    n_layers = trial.suggest_int(
-        "n_layers", params["n_layers"][0], params["n_layers"][1]
-    )
+    n_layers = trial.suggest_int("n_layers", params["n_layers"][0], params["n_layers"][1])
     layers = []
 
     in_features = 1
     for i in range(n_layers):
         out_features = trial.suggest_int(
-            "n_units_l{}".format(i),
-            params["range_neurons"][0],
-            params["range_neurons"][1],
+            "n_units_l{}".format(i), params["range_neurons"][0], params["range_neurons"][1], step=2
         )
 
-        out_attivation = trial.suggest_categorical(
-            "activation_l{}".format(i), params["suggest_activation"]
-        )
+        out_attivation = trial.suggest_categorical("activation_l{}".format(i), params["suggest_activation"])
 
         layers.append(nn.Linear(in_features, out_features))
         nn.init.xavier_normal_(layers[-1].weight)
@@ -49,11 +43,11 @@ def define_MLP(trial: optuna.Trial, params: dict = {}):
             layers.append(nn.Sigmoid())
         try:
             if isinstance(params["range_dropout"], (list, tuple)):
+
                 p = trial.suggest_float(
                     "dropout_l{}".format(i),
                     params["range_dropout"][0],
                     params["range_dropout"][1],
-                    log=True,
                 )
             else:
                 p = params["range_dropout"]
@@ -68,9 +62,7 @@ def define_MLP(trial: optuna.Trial, params: dict = {}):
     layers.append(nn.Linear(in_features, 1))
     nn.init.xavier_normal_(layers[-1].weight)
 
-    last_activation = trial.suggest_categorical(
-        "last_activation", params["suggest_last_activation"]
-    )
+    last_activation = trial.suggest_categorical("last_activation", params["suggest_last_activation"])
 
     if last_activation == "lambda":
         layers.append(AdaptiveSigmoid())
@@ -81,12 +73,12 @@ def define_MLP(trial: optuna.Trial, params: dict = {}):
 
     model = nn.Sequential(*layers)
 
+    print(model)
+
     return model
 
 
-def objective_MLP(
-    trial: optuna.Trial, X_train, Y_train, X_test, Y_test, params, device
-):
+def objective_MLP(trial: optuna.Trial, X_train, Y_train, X_test, Y_test, params, device):
 
     X_test = torch.tensor(X_test, dtype=torch.float32, device=device)
 
@@ -102,13 +94,11 @@ def objective_MLP(
     )
 
     # loss_name = trial.suggest_categorical("loss", params["loss"])
-    s_epoch = trial.suggest_int("epoch", params["epoch"][0], params["epoch"][1])
+    s_epoch = trial.suggest_int("epoch", params["epoch"][0], params["epoch"][1], step=10)
     optimizer_name = trial.suggest_categorical("optimizer", params["optimizer"])
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
 
-    batch_size = trial.suggest_int(
-        "batch_size", params["batch_size"][0], params["batch_size"][1]
-    )
+    batch_size = trial.suggest_int("batch_size", params["batch_size"][0], params["batch_size"][1], step=2)
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
     Y_train = torch.tensor(Y_train, dtype=torch.float32)
@@ -129,9 +119,7 @@ def objective_MLP(
             target = train_data[:, 1]
             # Limiting training data for faster epochs.
 
-            data, target = data.view(data.size(0), 1).to(device), target.view(
-                target.size(0), 1
-            ).to(device)
+            data, target = data.view(data.size(0), 1).to(device), target.view(target.size(0), 1).to(device)
 
             optimizer.zero_grad()
             output = model(data)
@@ -203,9 +191,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
     set_seed(seed)
 
     if isinstance(params["n_samples"], (list, tuple)):
-        n_samples = trial.suggest_int(
-            "n_samples", params["n_samples"][0], params["n_samples"][1]
-        )
+        n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
     else:
         n_samples = params["n_samples"]
 
@@ -217,16 +203,12 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
     if params["target_type"] == "GMM":
 
         if isinstance(params["n_init"], (list, tuple)):
-            n_init = trial.suggest_int(
-                "n_init", params["n_init"][0], params["n_init"][1], step=10
-            )
+            n_init = trial.suggest_int("n_init", params["n_init"][0], params["n_init"][1], step=10)
         else:
             n_init = params["n_init"]
 
         if isinstance(params["max_iter"], (list, tuple)):
-            max_iter = trial.suggest_int(
-                "max_iter", params["max_iter"][0], params["max_iter"][1], step=10
-            )
+            max_iter = trial.suggest_int("max_iter", params["max_iter"][0], params["max_iter"][1], step=10)
         else:
             max_iter = params["max_iter"]
 
@@ -238,9 +220,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
             n_components = params["n_components"]
 
         if isinstance(params["init_params_gmm"], (list, tuple)):
-            init_params_gmm = trial.suggest_categorical(
-                "init_params_gmm", params["init_params_gmm"]
-            )
+            init_params_gmm = trial.suggest_categorical("init_params_gmm", params["init_params_gmm"])
         else:
             init_params_gmm = params["init_params_gmm"]
 
@@ -253,9 +233,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
         )
 
         # generate the id
-        unique_id_gmm_target = generate_unique_id(
-            [x_training, n_components, bias, init_params_gmm, seed], 5
-        )
+        unique_id_gmm_target = generate_unique_id([x_training, n_components, bias, init_params_gmm, seed], 5)
         file_name = f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}.npz"
         file_path = os.path.join(tmp_dir, file_name)
 
@@ -264,7 +242,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
             X=x_training,
             save_filename=file_path,
             progress_bar=True,
-            n_jobs=-1,
+            n_jobs=3,
         )
 
     elif params["target_type"] == "PARZEN":
@@ -280,13 +258,10 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
         _, gen_target_y = gen_target_with_parzen_parallel(
             parzen_model,
             X=x_training,
-            save_filename=file_path,
             progress_bar=True,
-            n_jobs=-1,
+            n_jobs=3,
         )
 
-    r2_score = objective_MLP(
-        trial, x_training, gen_target_y, x_test, y_test, params, device
-    )
+    r2_score = objective_MLP(trial, x_training, gen_target_y, x_test, y_test, params, device)
 
     return r2_score

@@ -8,13 +8,13 @@ import os
 
 
 # ---
-# a = sys.path.append((os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+a = sys.path.append((os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from model.optuna_model import objective_MLP_allin_gmm
 
 
 def start_optuna_mlp():
-    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
 
     params = {
         # TRAIN PARAMS:
@@ -25,25 +25,25 @@ def start_optuna_mlp():
         # MODEL PARAMS:
         "n_layers": (1, 4),
         "range_neurons": (4, 64),
-        "range_dropout": (0.00, 0.2),
-        "suggest_activation": ("relu", "tanh"),
+        "range_dropout": 0,
+        "suggest_activation": ("relu", "tanh", "sigmoid"),
         "suggest_last_activation": ("lambda", None),
         # GMM PARAMS:
         "n_components": (2, 15),
         "init_params_gmm": ("k-means++", "kmeans"),
-        "n_init": 60,
-        "max_iter": 80,
+        "n_init": (10, 100),
+        "max_iter": (10, 100),
         # PARZEN PARAMS:
         "h": (0.001, 3),
         # DATASET PARAMS:
         "n_samples": 100,
-        "seed": 42,
+        "seed": (0, 100),
         "target_type": "GMM",
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"BEST GMM MLP 2"  # Unique identifier of the study.
+    study_name = f"BEST ALLIN {params['target_type']} MLP {params['n_samples']} PROVA"  # Unique identifier of the study.
     storage_name = "sqlite:///optuna-02.db"
 
     study = optuna.create_study(
@@ -58,8 +58,8 @@ def start_optuna_mlp():
     tmp_dir = tempfile.TemporaryDirectory()
 
     study.optimize(
-        lambda trial: objective_MLP_allin_gmm(trial, params, tmp_dir.name),
-        n_trials=300,
+        lambda trial: objective_MLP_allin_gmm(trial, params, tmp_dir.name, device),
+        n_trials=5,
         timeout=None,
         n_jobs=1,
         show_progress_bar=True,
