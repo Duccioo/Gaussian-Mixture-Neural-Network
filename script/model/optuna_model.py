@@ -73,8 +73,6 @@ def define_MLP(trial: optuna.Trial, params: dict = {}):
 
     model = nn.Sequential(*layers)
 
-    print(model)
-
     return model
 
 
@@ -133,7 +131,7 @@ def objective_MLP(trial: optuna.Trial, X_train, Y_train, X_test, Y_test, params,
         with torch.no_grad():
             output = model(X_test)
 
-        r2_value = r2_score(output.numpy(), Y_test)
+        r2_value = r2_score(Y_test, output.numpy())
         # mse = mean_squared_error(output.numpy(), Y_test)
 
         trial.report(r2_value, epoch)
