@@ -88,22 +88,22 @@ if __name__ == "__main__":
     # --- MLP PARAMS --------
     mlp_params = {
         "dropout": 0.000,
-        "hidden_layer": [(42, nn.Tanh()), (48, nn.Tanh())],
-        "last_activation": "lambda",
+        "hidden_layer": [(64, nn.Tanh()), (56, nn.Tanh()), (38, nn.Tanh())],
+        "last_activation": None,
     }
 
     train_params = {
-        "epochs": 220,
-        "batch_size": 4,
-        "loss_type": "huber_loss",
-        "optimizer": "RMSprop",
-        "learning_rate": 0.002207,
+        "epochs": 540,
+        "batch_size": 26,
+        "loss_type": "mse_loss",
+        "optimizer": "Adam",
+        "learning_rate": 0.000874345,
     }
 
     gmm_target_params = {
-        "n_components": 7,
+        "n_components": 10,
         "n_init": 100,
-        "max_iter": 100,
+        "max_iter": 80,
         "init_params": "k-means++",
         "random_state": dataset_params["seed"],
     }

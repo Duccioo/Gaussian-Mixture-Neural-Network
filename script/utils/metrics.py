@@ -14,7 +14,8 @@ import numpy as np
 def kl_divergence_score(true_pdf, predicted_pdf):
     kl_divergence = entropy(true_pdf, qk=predicted_pdf)
     # kl_divergence = np.mean(kl_divergence)
-    return min(kl_divergence, 100000)
+    # print(kl_divergence)
+    return min(kl_divergence[0], 100000)
 
     """Epsilon is used here to avoid conditional code for
     checking that neither P nor Q is equal to 0."""
