@@ -65,7 +65,7 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     # select model type from "GMM" "MLP" "Parzen Window" "KNN" "Parzen Window + NN" "GMM + NN"
-    model_type = "GMM + NN"
+    model_type = "KNN"
 
     dataset_params = {
         "n_samples": args.samples,
@@ -78,10 +78,10 @@ if __name__ == "__main__":
         "n_init": 11,
         "max_iter": 684,
         "init_params": "kmeans",
-        "random_state": 69,
+        "random_state": dataset_params["seed"],
     }
 
-    knn_model_params = {"k1": 2, "kn": 4}
+    knn_model_params = {"k1": 1.0494451711015031, "kn": 23}
 
     parzen_window_params = {"h": 0.3795755152130492}  # trovato con optuna
 
@@ -252,11 +252,11 @@ if __name__ == "__main__":
     elif model_type == "KNN":
         model_params = knn_model_params
         model = KNN_Model(**knn_model_params)
-        model.fit(X_train, Y_train)
+        model.fit(pdf.training_X)
 
-        pdf_predicted = model.predict(X_test)
+        pdf_predicted = model.predict(pdf.test_X)
 
-        r2_value = r2_score(Y_test, pdf_predicted)
+        r2_value = r2_score(pdf.test_Y, pdf_predicted)
 
     # Creo l'oggetto che mi gestirà il salvataggio dell'esperimento e gli passo tutti i parametri
     experiment_name = f"Experiment "

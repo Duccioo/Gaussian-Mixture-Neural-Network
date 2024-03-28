@@ -1,22 +1,22 @@
 # Experiment Details Experiment  C10 S150
 > from experiment with GMM + NN
-> on 2024-03-28 17-30
+> on 2024-03-28 17-37
 ## Metrics:
-                                                                                                     
-| type   | r2            | mse          | max_error   | ise          | kl           | evs           |
-|--------|---------------|--------------|-------------|--------------|--------------|---------------|
-| Target | -0.7765733449 | 0.0051026565 | 0.234289343 | 0.0051026565 | 0.2847815132 | -0.7624816532 |
-| Model  | 0.0359        | 0.003        | 0.0965      | 0.0297       | 0.0513       | 0.822         |
-                                                                                                     
+                                                                                                      
+| type   | r2            | mse          | max_error    | ise          | kl           | evs           |
+|--------|---------------|--------------|--------------|--------------|--------------|---------------|
+| Target | -1.0793589597 | 0.0059723144 | 0.2829634476 | 0.0059723144 | 0.2619843707 | -1.0572539783 |
+| Model  | 0.6449        | 0.0011       | 0.0679       | 0.0109       | 0.0394       | 0.8441        |
+                                                                                                      
 ## Plot Prediction
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2 Experiment  C10
-S150\pdf_129dd2.png">
+<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2e8 Experiment  
+C10 S150\pdf_129dd2e8.png">
 
 ## Loss Plot
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2 Experiment  C10
-S150\loss_129dd2.png">
+<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2e8 Experiment  
+C10 S150\loss_129dd2e8.png">
 
 ## Dataset
 

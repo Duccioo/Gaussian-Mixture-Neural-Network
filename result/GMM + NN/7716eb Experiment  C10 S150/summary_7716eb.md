@@ -1,22 +1,22 @@
 # Experiment Details Experiment  C10 S150
 > from experiment with GMM + NN
-> on 2024-03-28 17-30
+> on 2024-03-28 17-23
 ## Metrics:
                                                                                                      
 | type   | r2            | mse          | max_error   | ise          | kl           | evs           |
 |--------|---------------|--------------|-------------|--------------|--------------|---------------|
 | Target | -0.7765733449 | 0.0051026565 | 0.234289343 | 0.0051026565 | 0.2847815132 | -0.7624816532 |
-| Model  | 0.0359        | 0.003        | 0.0965      | 0.0297       | 0.0513       | 0.822         |
+| Model  | 0.4126        | 0.0018       | 0.1251      | 0.0181       | 0.0359       | 0.8385        |
                                                                                                      
 ## Plot Prediction
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2 Experiment  C10
-S150\pdf_129dd2.png">
+<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\7716eb Experiment  C10
+S150\pdf_7716eb.png">
 
 ## Loss Plot
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2 Experiment  C10
-S150\loss_129dd2.png">
+<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\7716eb Experiment  C10
+S150\loss_7716eb.png">
 
 ## Dataset
 
@@ -36,7 +36,7 @@ S150\loss_129dd2.png">
 | KEY                | VALUE |
 |--------------------|-------|
 | dimension          | 1     |
-| seed               | 42    |
+| seed               | 19    |
 | n_samples_training | 100   |
 | n_samples_test     | 988   |
 | n_samples_val      | 50    |
@@ -53,7 +53,7 @@ S150\loss_129dd2.png">
 | n_init       | 100       |
 | max_iter     | 80        |
 | init_params  | k-means++ |
-| random_state | 42        |
+| random_state | 19        |
                             
 </details>
 
@@ -66,7 +66,7 @@ S150\loss_129dd2.png">
 | KEY             | VALUE                                      |
 |-----------------|--------------------------------------------|
 | dropout         | 0.0                                        |
-| hidden_layer    | [(64, Tanh()), (56, Tanh()), (38, Tanh())] |
+| hidden_layer    | [(40, ReLU()), (56, Tanh()), (38, Tanh())] |
 | last_activation | None                                       |
                                                                 
 </details>
@@ -78,12 +78,13 @@ LitModularNN(
     (dropout): Dropout(p=0.0, inplace=False)
     (output_layer): Linear(in_features=38, out_features=1, bias=True)
     (layers): ModuleList(
-      (0): Linear(in_features=1, out_features=64, bias=True)
-      (1): Linear(in_features=64, out_features=56, bias=True)
+      (0): Linear(in_features=1, out_features=40, bias=True)
+      (1): Linear(in_features=40, out_features=56, bias=True)
       (2): Linear(in_features=56, out_features=38, bias=True)
     )
     (activation): ModuleList(
-      (0-2): 3 x Tanh()
+      (0): ReLU()
+      (1-2): 2 x Tanh()
     )
   )
 )

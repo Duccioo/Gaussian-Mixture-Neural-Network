@@ -1,17 +1,17 @@
-# Experiment Details Experiment H0.3795755152130492 S100
+# Experiment Details Experiment H0.3795755152130492 S150
 
-> from experiment with Parzen Window
-> on 2024-03-28 00-40
+> from experiment with KNN
+> on 2024-03-28 17-43
 
 ## Metrics:
 
-| type  | r2     | mse    | max_error | ise     | kl     | evs    |
-| ----- | ------ | ------ | --------- | ------- | ------ | ------ |
-| Model | 0.7974 | 0.0006 | 0.1288    | 53.9288 | 0.1609 | 0.7998 |
+| type  | r2     | mse    | max_error | ise     | kl    | evs    |
+| ----- | ------ | ------ | --------- | ------- | ----- | ------ |
+| Model | 0.7217 | 0.0009 | 0.1238    | 60.6592 | 0.162 | 0.7326 |
 
 ## Plot Prediction
 
-<img src="pdf_2d5f24.png">
+<img src="pdf_62f577d3.png">
 
 ## Dataset
 
@@ -31,26 +31,28 @@
 | KEY                | VALUE |
 |--------------------|-------|
 | dimension          | 1     |
-| seed               | 72    |
+| seed               | 42    |
 | n_samples_training | 100   |
-| n_samples_test     | 985   |
-| n_samples_val      | 0     |
+| n_samples_test     | 988   |
+| n_samples_val      | 50    |
 | notes              |       |
                               
+## Target
 ## Model
-> using model Parzen Window
+> using model KNN
 #### Model Params:
 <details><summary>All Params used in the model </summary>
 
 | KEY | VALUE              |
 | --- | ------------------ |
-| h   | 0.3795755152130492 |
+| k1  | 1.0494451711015031 |
+| kn  | 23                 |
 
 </details>
 
 <details><summary>Model Architecture </summary>
 
-ParzenWindow_Model(h=0.3795755152130492, training=array([9.375019 , 4.89003 , 7.043401 , 4.748877 , 5.748054 , 5.605426 ,
+KNN_Model(k1=1.0494451711015031, kn=10, training=array([9.375019 , 4.89003 , 7.043401 , 4.748877 , 5.748054 , 5.605426 ,
 6.239142 , 5.282705 , 1.641122 , 3.493585 , 4.750192 , 8.015665 ,
 0.5006845, 9.587764 , 0.8132093, 9.651385 , 5.882876 , 6.88925 ,
 2.858302 , 5.293085 , 6.54212 , 0.2657254, 1.531607 , 1.506608 ,

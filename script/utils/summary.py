@@ -151,7 +151,7 @@ class Summary:
                     target_params,
                     model_type,
                 ],
-                lenght=6,
+                lenght=8,
             )
         )
 
@@ -296,26 +296,24 @@ class Summary:
     def log_target(
         self,
     ):
-        # try:
-        if self.dataset_params.get("target_type"):
-            with open(self.filename_summary_md_path, "a") as file:
-                console = Console(file=file)
-                console.print("## Target")
+        try:
+            if self.dataset_params.get("target_type"):
+                with open(self.filename_summary_md_path, "a") as file:
+                    console = Console(file=file)
+                    console.print("## Target")
 
-                if self.target_params.items():
-                    console.print(f"- Using {self.model_type} Target")
-                    console.print(
-                        f"<details><summary>All Params used in the model for generate the target for the MLP </summary>\n"
-                    )
+                    if self.target_params.items():
+                        console.print(f"- Using {self.model_type} Target")
+                        console.print(
+                            f"<details><summary>All Params used in the model for generate the target for the MLP </summary>\n"
+                        )
 
-                    console_table_dict(console, self.target_params)
-                    console.print("</details>")
-                    console.print("")
+                        console_table_dict(console, self.target_params)
+                        console.print("</details>")
+                        console.print("")
 
-    # except:
-    #     print(
-    #         "error in log_target, trying to log target but no target was provided"
-    # )
+        except:
+            print("error in log_target, trying to log target but no target was provided")
 
     def log_train_params(self):
 
@@ -390,8 +388,8 @@ class Summary:
 
         if save == True:
             extension = ".png"
-            img_folder_path = self.experiment_dir
-            img_folder_name = os.path.join(img_folder_path, name + "_" + str(self.id_experiment))
+
+            img_folder_name = os.path.join(name + "_" + str(self.id_experiment))
             plt.savefig(img_folder_name + extension)
             with open(self.filename_summary_md_path, "a") as file:
                 console = Console(file=file)

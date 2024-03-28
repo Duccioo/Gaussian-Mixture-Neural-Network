@@ -1,22 +1,22 @@
 # Experiment Details Experiment  C10 S150
 > from experiment with GMM + NN
-> on 2024-03-28 17-30
+> on 2024-03-28 17-31
 ## Metrics:
                                                                                                      
 | type   | r2            | mse          | max_error   | ise          | kl           | evs           |
 |--------|---------------|--------------|-------------|--------------|--------------|---------------|
 | Target | -0.7765733449 | 0.0051026565 | 0.234289343 | 0.0051026565 | 0.2847815132 | -0.7624816532 |
-| Model  | 0.0359        | 0.003        | 0.0965      | 0.0297       | 0.0513       | 0.822         |
+| Model  | 0.8992        | 0.0003       | 0.0708      | 0.0031       | 0.0181       | 0.9022        |
                                                                                                      
 ## Plot Prediction
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2 Experiment  C10
-S150\pdf_129dd2.png">
+<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\71696b Experiment  C10
+S150\pdf_71696b.png">
 
 ## Loss Plot
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2 Experiment  C10
-S150\loss_129dd2.png">
+<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\71696b Experiment  C10
+S150\loss_71696b.png">
 
 ## Dataset
 
@@ -36,7 +36,7 @@ S150\loss_129dd2.png">
 | KEY                | VALUE |
 |--------------------|-------|
 | dimension          | 1     |
-| seed               | 42    |
+| seed               | 19    |
 | n_samples_training | 100   |
 | n_samples_test     | 988   |
 | n_samples_val      | 50    |
@@ -53,7 +53,7 @@ S150\loss_129dd2.png">
 | n_init       | 100       |
 | max_iter     | 80        |
 | init_params  | k-means++ |
-| random_state | 42        |
+| random_state | 19        |
                             
 </details>
 
