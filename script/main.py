@@ -14,94 +14,29 @@ from sklearn.mixture import GaussianMixture
 from scipy.stats import entropy
 import argparse
 
-# ----
-from utils.data_manager import PDF
-from utils.utils import (
-    plot_AllInOne,
-    write_result,
-    generate_unique_id,
-    check_base_dir,
-    set_seed,
-)
-from model.nn_model import GM_NN_Model
-from model.parzen_model import ParzenWindow_Model
-from model.knn_model import KNN_Model
+# main.py
+import torch, torch.nn as nn, torch.nn.functional as F
+import lightning as L
+from lightning.pytorch.callbacks import Callback
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import r2_score
+import seaborn as sns
+from matplotlib import pyplot as plt
+
+
+# ---
+from utils.data_manager import load_multivariate_dataset
 from model.gm_model import gen_target_with_gm_parallel
+from model.nn_model import NeuralNetworkModular
+from model.parzen_model import ParzenWindow_Model, gen_target_with_parzen_parallel
+from model.knn_model import KNN_Model
+from utils.utils import set_seed
+from utils.summary import Summary
+from model.lightning_model import LitModularNN, MetricTracker
+from utils.data_manager import PDF
 
 
-def calculate_kl_divergence(true_pdf, predicted_pdf):
-    kl_divergence = entropy(true_pdf, predicted_pdf)
-    return np.mean(kl_divergence)
-
-
-def calculate_ise(true_pdf, predicted_pdf, bin_width=0.01):
-    # Calcola le aree dei rettangoli tra le due distribuzioni
-    rectangle_areas = (true_pdf - predicted_pdf) ** 2 * bin_width
-    ise = np.sum(rectangle_areas)
-    return ise
-
-
-def get_model_complexity(parameters):
-    nn_param = 1
-    nn_layer = 0
-    for neuron in parameters["module__hidden_layer"]:
-        nn_param = nn_param * neuron[0]
-        nn_layer = nn_layer + 1
-    return nn_param, nn_layer
-
-
-def test_and_log(
-    y_true,
-    y_predicted,
-    pdf_type: str = "None",
-    pdf: list = [],
-    n_samples: int = 100,
-    n_components=None,
-    n_layer: int = None,
-    n_neurons: int = None,
-    mlp_params="None",
-    best_params="None",
-    model_type="GMM",
-    epoch: int = None,
-    dimension: int = 1,
-    id: str = "",
-    id_dataset: str = "",
-    id_experiment: str = "",
-    write_to_csv=True,
-):
-    round_number = 3
-    r2_value = round(r2_score(y_true, y_predicted), round_number)
-
-    if write_to_csv == True:
-        # MLP scoring:
-        write_result(
-            id=str(id),
-            id_experiment=id_experiment,
-            pdf_type=pdf_type,
-            components=n_components,
-            model_type=model_type,
-            experiment_params=mlp_params,
-            best_params=best_params,
-            n_samples=n_samples,
-            dimension=dimension,
-            r2_score=r2_value,
-            max_error_score=round(max_error(y_true, y_predicted), round_number),
-            n_layer=n_layer,
-            n_neurons=n_neurons,
-            mse_score=round(np.sqrt(mean_squared_error(y_true, y_predicted)), round_number),
-            evs_score=round(explained_variance_score(y_true, y_predicted), round_number),
-            ise_score=round(calculate_ise(y_true, y_predicted), round_number),
-            k1_score=round(calculate_kl_divergence(y_true, y_predicted), round_number),
-            epoch=epoch,
-            pdf_param=pdf,
-            id_dataset=id_dataset,
-        )
-
-    return r2_value
-
-
-def main():
-
+def arg_parsing():
     # command line parsing
     parser = argparse.ArgumentParser(description="Project for AI Exam")
     parser.add_argument("--pdf", type=str, default="default")
@@ -122,332 +57,238 @@ def main():
     parser.add_argument("--parzen", action="store_true", default=False)
     args = parser.parse_args()
 
-    # select device:
-    if args.gpu:
-        device = args.gpu
-    else:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-    # Parameters:
-    # -- data parameters
-    seed = None
-    n_samples = args.samples  # number of samples to generate from the exp distribution
-    stepper_x_test = 0.01  # step to take on the limit_test for generate the test data
-
-    # -- gmm parameters
-    n_components = args.components  # number of components for the Gaussian Mixture
-    max_iter = 80  # the maximum number of iterations for training the GMMs
-    n_init = 60  # the number of initial iterations for training the GMMs
-
-    # -- other models parameters
-    init_param_gmm = "kmeans"  # the initialization of the mean vector for the base GMM [random, kmeans, k-means++, random_from_data]
-    parzen_h = 0.33
-    knn_k1 = 2
-
-    # -- mlp parameters
-    init_param_mlp = "kmeans"  # the initialization of the mean vector for the GMM in the GMM+MLP model [random, kmeans, k-means++, random_from_data]
-    early_stop = None  # "valid_loss" or "r2" or None
-    patience = 20
-    mlp_params = {
-        "criterion": [nn.HuberLoss()],
-        "max_epochs": [794],
-        "batch_size": [51],
-        "lr": [0.0026942],
-        "module__last_activation": [None,"lambda"],
-        "module__hidden_layer": [
-            [(38, nn.ReLU()), (7, nn.Tanh())],
-            [(60, nn.ReLU()), (60, nn.ReLU()), (10, nn.ReLU())],
-            [(54, nn.ReLU()), (57, nn.ReLU())],
-            [(32, nn.ReLU()), (16, nn.Tanh()), (16, nn.Tanh()), (8, nn.Tanh())],
-            # [(16, nn.ReLU()), (32, nn.Tanh()), (32, nn.Tanh()), (16, nn.ReLU())],
-            # [(128, nn.ReLU()), (32, nn.Tanh())],
-            # [(16, nn.ReLU()), (128, nn.ReLU())],
-            # [(128, nn.ReLU()), (128, nn.ReLU()), (128, nn.ReLU())],
-            # [(32, nn.LeakyReLU()), (32, nn.Tanh()), (64, nn.ReLU())],
-            # [(128, nn.ReLU()), (64, nn.Tanh()), (32, nn.ReLU())],
-        ],
-        "optimizer": [optim.Adam],
-        # "optimizer__weight_decay": [0.001],
-        "module__dropout": [0.00],
-    }
-
-    # generate the sample from a known distribution:
-    pdf_exponential = PDF({"type": "exponential", "mean": 0.6}, name="exponential standard")
-
-    pdf_logistic_multimodal = PDF(
-        [
-            [
-                {"type": "logistic", "mean": 20, "scale": 0.5, "weight": 0.4},
-                {"type": "logistic", "mean": 10, "scale": 4, "weight": 0.4},
-                {"type": "logistic", "mean": 17, "scale": 1, "weight": 0.2},
-            ],
-        ],
-        name="multimodal 3 logistic",
-    )
-
-    if args.pdf in ["exponential", "exp"]:
-        pdf = pdf_exponential
-    elif args.pdf in ["multimodal logistic", "logistic"]:
-        pdf = pdf_logistic_multimodal
-    else:
-        pdf = PDF(default="MULTIVARIATE_1254")
-
-    # sample the data from a known distribution
-    x_training, y_training = pdf.generate_training(n_samples=n_samples, seed=seed)
-    n_samples = x_training.shape[0]
-
-    # generate the data for plotting the pdf
-    x_test, y_test = pdf.generate_test(stepper=stepper_x_test)
-
-    id_dataset = generate_unique_id([x_training, y_training, x_test, y_test], lenght=5)
-    id_experiment = generate_unique_id(
-        [
-            x_training,
-            y_training,
-            x_test,
-            y_test,
-            args,
-            mlp_params,
-            seed,
-            n_samples,
-            pdf,
-            stepper_x_test,
-            n_components,
-            init_param_mlp,
-            init_param_gmm,
-            parzen_h,
-            knn_k1,
-            early_stop,
-            patience,
-        ],
-        lenght=7,
-    )
-
-    # ------------------------ GMM: --------------------------
-    if args.gmm is True:
-        id_gmm = generate_unique_id(
-            [
-                x_training,
-                x_test,
-                y_test,
-                seed,
-                n_components,
-                n_samples,
-                init_param_gmm,
-                max_iter,
-                n_init,
-            ],
-            lenght=5,
-        )
-
-        # train the GMM model
-        model_gmm = GaussianMixture(
-            n_components=n_components,
-            random_state=seed,
-            init_params=init_param_gmm,
-            max_iter=max_iter,
-            n_init=n_init,
-        )
-        model_gmm.fit(x_training)
-        # predict the pdf with GMM
-        pdf_predicted_gmm = np.exp(model_gmm.score_samples(x_test))
-        # with .score_samples we get the log-likelihood over all the samples
-
-        # predict the pdf with GMM
-        r2_gmm = test_and_log(
-            y_true=y_test,
-            y_predicted=pdf_predicted_gmm,
-            pdf_type=pdf.name,
-            pdf=pdf.params,
-            dimension=pdf.dimension,
-            n_samples=n_samples,
-            n_components=n_components,
-            model_type=f"GMM {init_param_gmm}",
-            id=id_gmm,
-            id_dataset=id_dataset,
-            id_experiment=id_experiment,
-            write_to_csv=args.save,
-        )
-    else:
-        pdf_predicted_gmm = None
-
-    # ------------------------ PARZEN WINDOW: --------------------------
-    if args.parzen:
-        id_parzen = generate_unique_id([x_training, x_test, y_test, seed, n_samples, parzen_h], lenght=5)
-        model_parzen = ParzenWindow_Model(h=parzen_h)
-        model_parzen.fit(training=x_training)
-        pdf_predicted_parzen = model_parzen.predict(test=x_test)
-        r2_parzen = test_and_log(
-            y_true=y_test,
-            y_predicted=pdf_predicted_parzen,
-            pdf_type=pdf.name,
-            pdf=pdf.params,
-            dimension=pdf.dimension,
-            n_samples=n_samples,
-            model_type=f"PARZEN WINDOW",
-            id=id_parzen,
-            id_dataset=id_dataset,
-            id_experiment=id_experiment,
-            write_to_csv=args.save,
-            mlp_params=parzen_h,
-        )
-    else:
-        pdf_predicted_parzen = None
-
-    # ------------------------ KNN: --------------------------
-    if args.knn:
-        id_knn = generate_unique_id([x_training, x_test, y_test, seed, n_samples, knn_k1], lenght=5)
-        model_knn = KNN_Model(k1=knn_k1)
-        model_knn.fit(training=x_training)
-        pdf_predicted_knn = model_knn.predict(test=x_test)
-        r2_knn = test_and_log(
-            y_true=y_test,
-            y_predicted=pdf_predicted_knn,
-            pdf_type=pdf.name,
-            pdf=pdf.params,
-            dimension=pdf.dimension,
-            n_samples=n_samples,
-            model_type=f"KNN",
-            id=id_knn,
-            id_dataset=id_dataset,
-            id_experiment=id_experiment,
-            write_to_csv=args.save,
-            mlp_params=knn_k1,
-        )
-    else:
-        pdf_predicted_knn = None
-
-    # ------------------------ GMM + NN: --------------------------
-
-    id_mlp = generate_unique_id(
-        [
-            x_training,
-            x_test,
-            y_test,
-            seed,
-            n_components,
-            n_samples,
-            init_param_mlp,
-            mlp_params,
-            args.bias,
-            args.gridsearch,
-            early_stop,
-            patience,
-        ],
-        lenght=5,
-    )
-
-    gm_model_target = GaussianMixture(
-        n_components=n_components,
-        init_params=init_param_mlp,
-        random_state=seed,
-        n_init=n_init,
-        max_iter=max_iter,
-    )
-
-    model_mlp = GM_NN_Model(
-        parameters=mlp_params,
-        n_components=n_components,
-        bias=args.bias,
-        init_params=init_param_mlp,
-        seed=seed,
-    )
-
-    # generate the id
-    unique_id = generate_unique_id([x_training, n_components, args.bias, init_param_mlp, seed], 5)
-
-    # check if a saved target file exists:
-
-    base_dir = ["..", "data", "MLP"]
-    base_dir = check_base_dir(base_dir)
-
-    save_filename = f"train_mlp{'_Biased' if args.bias == True else '' }_{init_param_mlp}_C{n_components}"
-
-    if save_filename is not None:
-        save_filename = save_filename.split(".")[0]
-        save_filename = save_filename + "_" + unique_id + ".npz"
-        save_filename = os.path.join(base_dir, save_filename)
-
-    _, gmm_target_y = gen_target_with_gm_parallel(
-        gm_model=gm_model_target,
-        X=x_training,
-        #save_filename=save_filename,
-        bias=args.bias,
-        progress_bar=True,
-        n_jobs=3,
-    )
-
-    model_mlp.fit(
-        x_training,
-        gmm_target_y,
-        search_type="auto" if args.gridsearch == True else None,
-        n_jobs=args.jobs,
-        device=device,
-        early_stop=early_stop,
-        patience=patience,
-    )
-
-    # predict the pdf with GMM + MLP
-    pdf_predicted_mlp = model_mlp.predict(x_test.astype(np.float32))
-
-    if args.gridsearch == True:
-        epoch = model_mlp.nn_best_params["max_epochs"]
-    else:
-        epoch = model_mlp.nn_model.history[-1, "epoch"]
-
-    num_neurons, num_layer = get_model_complexity(model_mlp.nn_best_params)
-
-    # train the model and predict the pdf over the test set
-    r2_mlp = test_and_log(
-        y_predicted=pdf_predicted_mlp,
-        y_true=y_test,
-        pdf_type=pdf.name,
-        pdf=pdf.params,
-        dimension=pdf.dimension,
-        n_samples=n_samples,
-        n_components=n_components,
-        n_layer=num_layer,
-        n_neurons=num_neurons,
-        mlp_params=mlp_params,
-        best_params=model_mlp.nn_best_params,
-        id=id_mlp,
-        epoch=epoch,
-        id_dataset=id_dataset,
-        model_type=f"MLP {init_param_mlp}{' Biased' if args.bias == True else '' }",
-        id_experiment=id_experiment,
-        write_to_csv=args.save,
-    )
-
-    # with open("prova.json", "w") as f:
-    #     json.dump(model_mlp.history, f)
-
-    # r2_mlp_history = [elem["r2"] for elem in model_mlp.history]
-    # train_loss_mlp_history = [elem["train_loss"] for elem in model_mlp.history]
-    # valid_loss_mlp_history = [elem["valid_loss"] for elem in model_mlp.history]
-
-    # ----------------------------------------------------------------
-    # plot the real pdf and the predicted pdf for GMM and MLP
-    if pdf.dimension == 1:
-        plot_AllInOne(
-            x_training,
-            x_test,
-            mlp_target=gmm_target_y if args.mlp_targets else None,
-            pdf_predicted_knn=pdf_predicted_knn,
-            pdf_predicted_parzen=pdf_predicted_parzen,
-            pdf_predicted_mlp=pdf_predicted_mlp,
-            pdf_predicted_gmm=pdf_predicted_gmm,
-            pdf_true=y_test,
-            save=args.save,
-            name=f"result_{id_experiment}",
-            title=f"PDF estimation with {n_components} components and {n_samples} samples",
-            show=args.show,
-        )
-    else:
-        print(f"impossible to plot on a {pdf.dimension} dimensional space")
-
-    print(id_experiment)
-    print("MLP R2: ", r2_mlp)
+    return args
 
 
 if __name__ == "__main__":
-    main()
+
+    args = arg_parsing()
+
+    # select model type from "GMM" "MLP" "Parzen Window" "KNN" "Parzen Window + NN" "GMM + NN"
+    model_type = "Parzen Window + NN"
+
+    mlp_params = {
+        "dropout": 0.000,
+        "hidden_layer": [(16, nn.ReLU()), (56, nn.Tanh()), (36, nn.ReLU())],
+        "last_activation": "lambda",
+    }
+
+    gm_model_params = {
+        "n_components": 4,
+        "n_init": 11,
+        "max_iter": 684,
+        "init_params": "kmeans",
+        "random_state": 69,
+    }
+
+    knn_model_params = {"k1": 2, "kn": 4}
+
+    parzen_window_params = {"h": 0.3795755152130492}  # trovato con optuna
+
+    train_params = {
+        "epochs": 720,
+        "batch_size": 4,
+        "loss_type": "huber_loss",
+        "optimizer": "RMSprop",
+        "learning_rate": 0.00412264,
+    }
+
+    dataset_params = {
+        "n_samples": args.samples,
+        "seed": 42,
+        "target_type": "GMM" if model_type == "GMM + NN" else "PARZEN",
+    }
+
+    gmm_target_params = {
+        "n_components": 6,
+        "n_init": 50,
+        "max_iter": 200,
+        "init_params": "kmeans",
+        "random_state": dataset_params["seed"],
+    }
+
+    pw_target_params = {"h": 0.3795755152130492}
+
+    set_seed(dataset_params["seed"])
+
+    if args.pdf in ["exponential", "exp"]:
+        pdf = PDF({"type": "exponential", "mean": 0.6}, name="exponential standard")
+    elif args.pdf in ["multimodal logistic", "logistic"]:
+        pdf = PDF(
+            [
+                [
+                    {"type": "logistic", "mean": 20, "scale": 0.5, "weight": 0.4},
+                    {"type": "logistic", "mean": 10, "scale": 4, "weight": 0.4},
+                    {"type": "logistic", "mean": 17, "scale": 1, "weight": 0.2},
+                ],
+            ],
+            name="multimodal 3 logistic",
+        )
+    else:
+        pdf = PDF(default="MULTIVARIATE_1254")
+
+    X_train, Y_train = pdf.generate_training(
+        n_samples=dataset_params["n_samples"], seed=dataset_params["seed"]
+    )
+
+    # generate the data for plotting the pdf
+    X_test, Y_test = pdf.generate_test(stepper=0.01)
+
+    X_val, Y_val = pdf.generate_validation(n_samples=50)
+
+    target_y = None
+    target_params = None
+    train_loss = None
+    val_loss = None
+    val_score = None
+    model_params: dict = {}
+
+    # --------------------------------------------------------------------
+
+    if model_type in ["MLP", "GMM + NN", "Parzen Window + NN"]:
+        print("Training Neural Network")
+        model_params = mlp_params
+
+        if dataset_params["target_type"] == "GMM":
+            gm_model = GaussianMixture(**gmm_target_params)
+
+            _, target_y = gen_target_with_gm_parallel(
+                gm_model=gm_model,
+                X=pdf.training_X,
+                progress_bar=True,
+                n_jobs=-1,
+                save_filename=f"train_old-{gmm_target_params['n_components']}.npz",
+            )
+
+            target_y = torch.tensor(target_y, dtype=torch.float32)
+            target_params = gmm_target_params
+
+        elif dataset_params["target_type"] == "PARZEN":
+
+            parzen_model = ParzenWindow_Model(**pw_target_params)
+
+            _, target_y = gen_target_with_parzen_parallel(
+                parzen_model=parzen_model,
+                X=pdf.training_X,
+                progress_bar=True,
+                n_jobs=-1,
+                save_filename=f"train_old-{pw_target_params['h']}.npz",
+            )
+
+            target_y = torch.tensor(target_y, dtype=torch.float32)
+            target_params = pw_target_params
+
+        X_train = torch.tensor(pdf.training_X, dtype=torch.float32)
+        Y_train = torch.tensor(pdf.training_Y, dtype=torch.float32)
+
+        X_test = torch.tensor(X_test, dtype=torch.float32)
+        Y_test = torch.tensor(Y_test, dtype=torch.float32)
+
+        X_val = torch.tensor(X_val, dtype=torch.float32)
+        Y_val = torch.tensor(Y_val, dtype=torch.float32)
+
+        xy_train = torch.cat((X_train, target_y), 1)
+        xy_test = torch.cat((X_test, Y_test), 1)
+        xy_val = torch.cat((X_val, Y_val), 1)
+
+        train_loader = torch.utils.data.DataLoader(
+            xy_train,
+            batch_size=train_params["batch_size"],
+            shuffle=True,
+            num_workers=7,
+            persistent_workers=True,
+        )
+
+        val_loader = torch.utils.data.DataLoader(
+            xy_val,
+            batch_size=train_params["batch_size"],
+            shuffle=False,
+            num_workers=0,
+        )
+
+        model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])
+        cb = MetricTracker()
+        trainer = L.Trainer(
+            accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb]
+        )
+        trainer.fit(model, train_loader, val_loader)
+        train_loss = cb.train_epoch_losses
+        val_loss = cb.val_epoch_losses
+        val_score = cb.val_epoch_scores
+
+        # evaluate model
+        model.eval()
+        with torch.no_grad():
+            pdf_predicted = model(X_test)
+            pdf_predicted = pdf_predicted.detach().numpy()
+            r2_value = r2_score(Y_test, pdf_predicted)
+
+        X_train = X_train.detach().numpy()
+        Y_train = Y_train.detach().numpy()
+        Y_test = Y_test.detach().numpy()
+        X_test = X_test.detach().numpy()
+        target_y = target_y.detach().numpy()
+
+    # ----------------------------------------------------------------------
+    elif model_type == "Parzen Window":
+        model_params = parzen_window_params
+        model = ParzenWindow_Model(h=parzen_window_params["h"])
+        model.fit(training=X_train)
+        pdf_predicted = model.predict(test=X_test)
+
+        r2_value = r2_score(Y_test, pdf_predicted)
+
+    # ----------------------------------------------------------------------
+    elif model_type == "GMM":
+        model_params = gm_model_params
+        model = GaussianMixture(**gm_model_params)
+        model.fit(X_train, Y_train)
+
+        # predict the pdf with GMM
+        pdf_predicted = np.exp(model.score_samples(X_test))
+
+        r2_value = r2_score(Y_test, pdf_predicted)
+
+    # ----------------------------------------------------------------------
+    elif model_type == "KNN":
+        model_params = knn_model_params
+        model = KNN_Model(**knn_model_params)
+        model.fit(X_train, Y_train)
+
+        pdf_predicted = model.predict(X_test)
+
+        r2_value = r2_score(Y_test, pdf_predicted)
+
+    # Creo l'oggetto che mi gestirà il salvataggio dell'esperimento e gli passo tutti i parametri
+    experiment_name = f"Experiment "
+
+    if dataset_params["target_type"] == "GMM":
+        experiment_name += f" C{gmm_target_params['n_components']} "
+    elif dataset_params["target_type"] == "PARZEN":
+        experiment_name += f" H{pw_target_params['h']} "
+
+    experiment_name += f"S{dataset_params['n_samples']}"
+
+    summary = Summary(
+        experiment=experiment_name,
+        model_type=model_type,
+        pdf=pdf,
+        dataset_params=dataset_params,
+        model_params=model_params,
+        target_params=target_params,
+        train_params=train_params,
+        overwrite=True,
+    )
+
+    summary.calculate_metrics(pdf.training_Y, pdf.test_Y, pdf_predicted, target_y)
+    summary.plot_pdf(pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted)
+    summary.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
+    summary.log_dataset()
+    summary.log_target()
+    summary.log_model(model=model)
+    summary.log_train_params()
+    summary.leaderboard()
+
+    print("ID EXPERIMENT:", summary.id_experiment)
+    print("R2 score: ", r2_value)
+    print("Done!")

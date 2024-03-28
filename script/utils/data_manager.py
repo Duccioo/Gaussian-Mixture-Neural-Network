@@ -126,6 +126,12 @@ class PDF:
     training_Y: np.ndarray = field(init=True, default=np.array(None))
     test_X: np.ndarray = field(init=True, default=np.array(None))
     test_Y: np.ndarray = field(init=True, default=np.array(None))
+    validation_X: np.ndarray = field(init=True, default=np.array(None))
+    validation_Y: np.ndarray = field(init=True, default=np.array(None))
+
+    n_samples_training: int = field(init=True, default=0)
+    n_samples_test: int = field(init=True, default=0)
+    n_samples_validation: int = field(init=True, default=0)
 
     base_dir: str = field(init=True, default=check_base_dir(BASE_DATA_DIR))
     unique_id_training: str = field(init=True, default="00000")
@@ -181,12 +187,14 @@ class PDF:
             and training_Y is not None
         ):
             self.training_X, self.training_Y = training_X, training_Y
+            self.n_samples_training = len(self.training_X)
             return self.training_X, self.training_Y
 
         #  --- generating part ---
         elif self.default is not None:
             # print("provo a generare dataset...")
             self.load_default(n_samples=n_samples)
+            self.n_samples_training = len(self.training_X)
             return self.training_X, self.training_Y
 
         else:
@@ -233,6 +241,7 @@ class PDF:
                     save_filename_t,
                     base_dir=base_dir,
                 )
+            self.n_samples_training = len(self.training_X)
             return self.training_X, self.training_Y
 
     def load_default(self, n_samples):
@@ -258,15 +267,28 @@ class PDF:
 
         self.training_X = np.array(data_loaded)[:, 0].reshape(-1, 1)
         self.training_Y = np.array(data_loaded)[:, 1].reshape(-1, 1)
+        self.n_samples_training = len(self.training_X)
         return self.training_X, self.training_Y
 
     def generate_test(
         self,
-        range_limit: tuple or None = None,
+        range_limit: tuple = None,
         stepper: float = 0.001,
         save_filename=None,
         base_dir=None,
     ):
+        """
+        Generate test data for the model using specified parameters and return the test data.
+
+        Parameters:
+            range_limit (tuple): A tuple containing the lower and upper limits for generating test data.
+            stepper (float): The step size for generating the test data.
+            save_filename (str): The filename to save the test data.
+            base_dir (str): The base directory where the data will be saved.
+
+        Returns:
+            tuple: A tuple containing the generated test data X and Y.
+        """
         # generate the id
         self.unique_id_test = generate_unique_id([self.params, range_limit, stepper], 5)
 
@@ -281,6 +303,7 @@ class PDF:
 
         if save_filename is not None and test_X is not None and test_Y is not None:
             self.test_X, self.test_Y = test_X, test_Y
+            self.n_samples_test = len(self.test_X)
             return self.test_X, self.test_Y
 
         else:
@@ -313,7 +336,43 @@ class PDF:
                 save_dataset(
                     (self.test_X, self.test_Y), save_filename_t, base_dir=base_dir
                 )
+            self.n_samples_test = len(self.test_X)
             return self.test_X, self.test_Y
+
+    def generate_validation(self, percent: float = 0.0, n_samples: int = 0):
+        """
+        Generates a validation set from the training set.
+
+        Parameters:
+            percent (float, optional): The percentage of the training set to use for validation. Defaults to 0.0.
+            n_samples (int, optional): The number of samples to use for validation. Defaults to 0.
+
+        Returns:
+            tuple: A tuple containing the validation input data (validation_X) and validation target data (validation_Y).
+        """
+        if self.n_samples_training == 0:
+            print(
+                "impossible to generate validation set from training set because there is no training data yet"
+            )
+            print("Try to launch '.generate_training()' first")
+        else:
+            if n_samples == 0 and percent != 0:
+                n_val = int(percent * self.n_samples_training)
+            elif n_samples != 0:
+                n_val = n_samples
+
+            n_train = self.n_samples_training - n_val
+
+            self.validation_X = self.training_X[n_train:]
+            self.validation_Y = self.training_Y[n_train:]
+
+            self.training_X = self.training_X[:n_train]
+            self.training_Y = self.training_Y[:n_train]
+
+            self.n_samples_training -= len(self.validation_X)
+            self.n_samples_validation = len(self.validation_X)
+
+        return self.validation_X, self.validation_Y
 
 
 def load_multivariate_dataset(n_samples, seed, stepper_x_test=0.01):
@@ -337,7 +396,7 @@ def load_multivariate_dataset(n_samples, seed, stepper_x_test=0.01):
     # generate the data for plotting the pdf
     X_test, Y_test = pdf.generate_test(stepper=stepper_x_test)
 
-    return X_train, Y_train, X_test, Y_test
+    return X_train, Y_train, X_test, Y_test, pdf
 
 
 if __name__ == "__main__":

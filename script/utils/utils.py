@@ -196,7 +196,6 @@ def plot_histo(X):
 
 def check_base_dir(*args):
     """
-    !!!!!Occhio prende la directory dove è definita questa funzione come directory principale e non dove viene chiamata la funzione!!!!!!
     Given a variable number of arguments, this function constructs a full path by joining the absolute path of the current file with the provided arguments.
 
     Args:
@@ -249,10 +248,36 @@ def check_base_dir(*args):
     return full_path
 
 
+def check_and_rename_file(file_path):
+    if os.path.exists(file_path):
+        base, ext = os.path.splitext(file_path)
+        index = 1
+        while os.path.exists(f"{base}_{index}{ext}"):
+            index += 1
+        new_file_path = f"{base}_{index}{ext}"
+        os.rename(file_path, new_file_path)
+        return new_file_path
+    else:
+        return file_path
+
+
+def unique_dir(file_path):
+    if os.path.exists(file_path):
+        index = 1
+        while os.path.exists(f"{file_path}_{index}"):
+            index += 1
+        new_file_path = f"{file_path}_{index}"
+        return new_file_path
+    else:
+        return file_path
+
+
 def write_csv(
     log_name_file="test.csv",
     base_dir="",
     check_colomn=False,
+    head: list = None,
+    autodate: bool = False,
     **kwargs,
 ):
     """
@@ -267,18 +292,26 @@ def write_csv(
     # generate timestamp
     date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    log_entry = [date]
-    log_title = ["Date"]
+    if autodate:
+        log_entry = [date]
+        log_title = ["Date", *head]
+    else:
+        log_entry = []
+        log_title = [*head]
+
     for key, element in kwargs.items():
         if element is None:
             log_entry.append("")
         else:
             log_entry.append(str(element))
-        log_title.append(key.replace("_", " ").title())
+
+        if head is None:
+            log_title.append(key.replace("_", " ").title())
 
     # check if file exist
     if not os.path.isfile(full_path):
         with open(full_path, "w", newline="") as file:
+            # if not exist create the file and add the header
             writer = csv.writer(file)
             writer.writerow(log_title)
 

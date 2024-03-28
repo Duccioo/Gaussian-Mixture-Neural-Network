@@ -12,7 +12,6 @@ from utils.data_manager import load_dataset, save_dataset
 @define(slots=True)
 class ParzenWindow_Model:
     h: float = field(default=0.0, init=True)
-    kn: float = field(default=0.0, init=True)
     training: np.ndarray = field(init=True, default=np.array(None))
 
     def fit(self, training: np.ndarray):

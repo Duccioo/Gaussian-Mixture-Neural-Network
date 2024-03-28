@@ -1,6 +1,7 @@
 # main.py
 import torch, torch.nn as nn, torch.nn.functional as F
 import lightning as L
+from lightning.pytorch.callbacks import Callback
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import r2_score
 import seaborn as sns
@@ -9,8 +10,9 @@ from matplotlib import pyplot as plt
 # ---
 from utils.data_manager import load_multivariate_dataset
 from model.gm_model import gen_target_with_gm_parallel
-from model.nn_model import NeuralNetworkModular
+from model.lightning_model import LitModularNN, MetricTracker
 from utils.utils import set_seed
+from utils.summary import Summary
 
 # --------------------------------
 # Step 1: Define a LightningModule
@@ -18,110 +20,62 @@ from utils.utils import set_seed
 # A LightningModule (nn.Module subclass) defines a full *system*
 # (ie: an LLM, diffusion model, autoencoder, or simple image classifier).
 
-
-class LitAutoEncoder(L.LightningModule):
-    def __init__(self):
-        super().__init__()
-        dropout = 0.001
-        hidden_layer = [
-            (38, nn.ReLU()),
-            (7, nn.Tanh()),
-        ]
-        last_activation = None
-
-        self.neural_netowrk_modular = NeuralNetworkModular(
-            1,
-            1,
-            dropout=dropout,
-            hidden_layer=hidden_layer,
-            last_activation=last_activation,
-        )
-        # self.decoder = nn.Sequential(nn.Linear(10, 10), nn.ReLU(), nn.Linear(10, 1))
-
-    def forward(self, x):
-        # in lightning, forward defines the prediction/inference actions
-        embedding = self.neural_netowrk_modular(x)
-        return embedding
-
-    def training_step(self, batch, batch_idx):
-        # training_step defines the train loop. It is independent of forward
-        data = batch[:, 0]
-        target = batch[:, 1]
-        data = data.view(-1, 1)
-        target = target.view(-1, 1)
-
-        x_hat = self.neural_netowrk_modular(data)
-        # x_hat = self.decoder(z)
-        loss = F.huber_loss(x_hat, target)
-        self.log("train_loss", loss)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        data = batch[:, 0]
-        target = batch[:, 1]
-        data = data.view(-1, 1)
-        target = target.view(-1, 1)
-
-        x_hat = self.neural_netowrk_modular(data)
-        # x_hat = self.decoder(z)
-        loss = F.mse_loss(x_hat, target)
-        self.log("val_loss", loss)
-        return loss
-
-    def test_step(self, batch, batch_idx):
-        # this is the test loop
-        x, y = batch
-        x = x.view(x.size(0), -1)
-        z = self.neural_netowrk_modular(x)
-        x_hat = self.decoder(z)
-        test_loss = F.mse_loss(x_hat, x)
-        self.log("test_loss", test_loss)
-
-    def configure_optimizers(self):
-        learning_rate = 0.00269
-        optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
-        return optimizer
-
-
 if __name__ == "__main__":
 
-    batch_size = 51
-    n_samples = 100
-    seed = 36
-    n_components = 14
-    init_params_gmm = "kmeans"
-    n_init = 60
-    max_iter = 80
-    set_seed(seed)
-    epochs = 794
+    mlp_params = {
+        "dropout": 0.001,
+        "hidden_layer": [
+            (38, nn.ReLU()),
+            (7, nn.Tanh()),
+        ],
+        "last_activation": "lambda",
+    }
+
+    train_params = {
+        "epochs": 700,
+        "batch_size": 51,
+        "loss_type": "mse_loss",
+        "optimizer": "Adam",
+        "learning_rate": 0.001,
+    }
+
+    dataset_params = {
+        "n_samples": 100,
+        "seed": 36,
+        "target_type": "GMM",
+    }
+
+    gmm_target_params = {
+        "n_components": 14,
+        "n_init": 60,
+        "max_iter": 80,
+        "init_params": "kmeans",
+        "random_state": dataset_params["seed"],
+    }
+
+    set_seed(dataset_params["seed"])
+
     # -------------------
     # Step 2: Define data
     # -------------------
-    X_train, Y_train, X_test, Y_test = load_multivariate_dataset(n_samples, seed)
+    X_train, Y_train, X_test, Y_test, pdf = load_multivariate_dataset(
+        dataset_params["n_samples"], dataset_params["seed"]
+    )
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
-    Y_train = torch.tensor(Y_train, dtype=torch.float32)
+    Y_train = torch.tensor(Y_train, dtype=torch.float3)
 
     X_test = torch.tensor(X_test, dtype=torch.float32)
     Y_test = torch.tensor(Y_test, dtype=torch.float32)
 
-    gm_model = GaussianMixture(
-        n_components=n_components,
-        init_params=init_params_gmm,
-        random_state=seed,
-        n_init=n_init,
-        max_iter=max_iter,
-    )
-
-    # file_name = f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}.npz"
-    # file_path = os.path.join(tmp_dir, file_name)
+    gm_model = GaussianMixture(**gmm_target_params)
 
     _, gmm_target_y = gen_target_with_gm_parallel(
         gm_model=gm_model,
         X=X_train,
         progress_bar=True,
         n_jobs=-1,
-        save_filename=f"quiqui-{n_components}.npz",
+        save_filename=f"train_old-{gmm_target_params['n_components']}.npz",
     )
 
     gmm_target_y = torch.tensor(gmm_target_y, dtype=torch.float32)
@@ -131,20 +85,17 @@ if __name__ == "__main__":
     xy_test = torch.cat((X_test, Y_test), 1)
 
     train_loader = torch.utils.data.DataLoader(
-        xy_train, batch_size=batch_size, shuffle=True
-    )
-
-    val_loader = torch.utils.data.DataLoader(
-        xy_test,
-        batch_size=batch_size,
-        num_workers=3,
+        xy_train, batch_size=train_params["batch_size"], shuffle=True, num_workers=0
     )
 
     # -------------------
     # Step 3: Train
     # -------------------
-    model = LitAutoEncoder()
-    trainer = L.Trainer(accelerator="cpu", max_epochs=epochs)
+    model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])
+    cb = MetricTracker()
+    trainer = L.Trainer(
+        accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb]
+    )
     trainer.fit(model, train_loader)
 
     # evaluate model
@@ -153,17 +104,35 @@ if __name__ == "__main__":
         y_predicted_mlp = model(torch.tensor(X_test, dtype=torch.float32))
         y_predicted_mlp = y_predicted_mlp.detach().numpy()
         r2 = r2_score(Y_test, y_predicted_mlp)
-        print(r2)
 
-    # print figure
+    print("R2 SCORE", r2)
 
-    sns.lineplot(x=X_test.flatten(), y=Y_test.flatten(), color="green", label="True")
-    sns.lineplot(
-        x=X_test.flatten(), y=y_predicted_mlp.flatten(), label="base", color="red"
+    summary = Summary(
+        experiment=f"Lightning C{gmm_target_params['n_components']} S{dataset_params['n_samples']}",
+        model_type="GMM + NN",
+        pdf=pdf,
+        dataset_params=dataset_params,
+        model_params=mlp_params,
+        target_params=gmm_target_params,
+        train_params=train_params,
+        overwrite=True,
     )
-    sns.scatterplot(
-        x=X_train.flatten(), y=gmm_target_y.flatten(), color="purple", label="GMM"
+    summary.calculate_metrics(
+        Y_train.detach().numpy(),
+        Y_test.detach().numpy(),
+        y_predicted_mlp,
+        gmm_target_y.detach().numpy(),
     )
-
-    plt.legend()
-    plt.show()
+    summary.plot_pdf(
+        X_train.detach().numpy(),
+        gmm_target_y.detach().numpy(),
+        X_test.detach().numpy(),
+        Y_test.detach().numpy(),
+        y_predicted_mlp,
+    )
+    summary.plot_loss(cb.train_epoch_losses, loss_name=train_params["loss_type"])
+    summary.log_dataset()
+    summary.log_target()
+    summary.log_model(model=model)
+    summary.log_train_params()
+    summary.leaderboard()

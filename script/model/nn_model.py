@@ -28,6 +28,27 @@ class AdaptiveSigmoid(nn.Module):
         return x
 
 
+def mlp_block(input, output, activation="relu", *args, **kwargs):
+    activations = nn.ModuleDict([["tanh", nn.Tanh()], ["relu", nn.ReLU()]])
+
+    return nn.Sequential(
+        nn.Linear(input, output, *args, **kwargs),
+        activations[activation],
+    )
+
+
+def last_block(input, output, last_activarion):
+    activations = nn.ModuleDict([["lambda", AdaptiveSigmoid()], [None, None]])
+
+    return nn.Sequential(
+        nn.Linear(
+            input,
+            output,
+        ),
+        activations[last_activarion],
+    )
+
+
 class NeuralNetworkModular(nn.Module):
     def __init__(
         self,
@@ -36,34 +57,42 @@ class NeuralNetworkModular(nn.Module):
         dropout: int = 0.5,
         hidden_layer: list = [(10, nn.ReLU())],
         last_activation=False,
-        device="cpu",
     ):
         super(NeuralNetworkModular, self).__init__()
         self.dropout = nn.Dropout(dropout)
-        self.layers = nn.ModuleList()
-        self.activation = nn.ModuleList()
-        self.batchNorm = nn.ModuleList()
+        layers = []
+        activation = []
 
-        self.layers.append(nn.Linear(input_features, hidden_layer[0][0]))
-        self.activation.append(hidden_layer[0][1])
+        layer = nn.Linear(input_features, hidden_layer[0][0])
+        init.xavier_normal_(layer.weight)
+        layers.append(layer)
+        activation.append(hidden_layer[0][1])
 
         for i in range(len(hidden_layer) - 1):
-            self.layers.append(nn.Linear(hidden_layer[i][0], hidden_layer[i + 1][0]))
-            self.activation.append(hidden_layer[i + 1][1])
+            layer = nn.Linear(hidden_layer[i][0], hidden_layer[i + 1][0])
+            init.xavier_normal_(layer.weight)
+            layers.append(layer)
+            activation.append(hidden_layer[i + 1][1])
+            # layers.append(self.dropout)
 
-        self.output_layer = nn.Linear(hidden_layer[-1][0], output_features)
+        last_layer = nn.Linear(hidden_layer[-1][0], output_features)
+        init.xavier_normal_(last_layer.weight)
+        self.output_layer = last_layer
+        # layers.append(last_layer)
 
         if last_activation == "lambda":
+            layers.append(AdaptiveSigmoid())
             self.last_activation = AdaptiveSigmoid()
+        elif last_activation == None:
+            self.last_activation = None
         else:
             self.last_activation = last_activation
 
-        for layer in self.layers:
-            init.xavier_normal_(layer.weight)
-        init.xavier_normal_(self.output_layer.weight)
+        self.layers = nn.ModuleList(layers)
+        self.activation = nn.ModuleList(activation)
 
     def forward(self, x):
-        for layer, activation in zip(self.layers, self.activation):
+        for idx, (layer, activation) in enumerate(zip(self.layers, self.activation)):
             x = self.dropout(activation(layer(x)))
         x = self.output_layer(x)
 
@@ -236,44 +265,6 @@ class GM_NN_Model:
 
     def predict(self, X):
         return self.nn_model.predict(torch.tensor(X, dtype=torch.float32))
-
-
-def train_old_style(
-    model, X_train, Y_train, lr, epochs, batch_size, optimizer_name, device
-):
-
-    X_train = torch.tensor(X_train, dtype=torch.float32)
-    Y_train = torch.tensor(Y_train, dtype=torch.float32)
-
-    xy_train = torch.cat((X_train, Y_train), 1)
-
-    train_loader = torch.utils.data.DataLoader(
-        xy_train,
-        batch_size=batch_size,
-        shuffle=True,
-    )
-
-    criterion = nn.HuberLoss()
-    optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), lr=lr)
-
-    # Training of the model.
-    for epoch in range(epochs):
-        model.train()
-        for batch_idx, train_data in enumerate(train_loader):
-            data = train_data[:, 0]
-            target = train_data[:, 1]
-            # Limiting training data for faster epochs.
-
-            data, target = data.view(data.size(0), 1).to(device), target.view(
-                target.size(0), 1
-            ).to(device)
-
-            optimizer.zero_grad()
-            output = model(data)
-
-            loss_value = criterion(output, target)
-            loss_value.backward()
-            optimizer.step()
 
 
 if __name__ == "__main__":
