@@ -65,12 +65,12 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     # select model type from "GMM" "MLP" "Parzen Window" "KNN" "Parzen Window + NN" "GMM + NN"
-    model_type = "Parzen Window + NN"
+    model_type = "GMM + NN"
 
-    mlp_params = {
-        "dropout": 0.000,
-        "hidden_layer": [(16, nn.ReLU()), (56, nn.Tanh()), (36, nn.ReLU())],
-        "last_activation": "lambda",
+    dataset_params = {
+        "n_samples": args.samples,
+        "seed": 42,
+        "target_type": "GMM" if model_type == "GMM + NN" else "PARZEN",
     }
 
     gm_model_params = {
@@ -85,25 +85,26 @@ if __name__ == "__main__":
 
     parzen_window_params = {"h": 0.3795755152130492}  # trovato con optuna
 
-    train_params = {
-        "epochs": 720,
-        "batch_size": 4,
-        "loss_type": "huber_loss",
-        "optimizer": "RMSprop",
-        "learning_rate": 0.00412264,
+    # --- MLP PARAMS --------
+    mlp_params = {
+        "dropout": 0.000,
+        "hidden_layer": [(64, nn.ReLU()), (26, nn.Tanh())],
+        "last_activation": "lambda",
     }
 
-    dataset_params = {
-        "n_samples": args.samples,
-        "seed": 42,
-        "target_type": "GMM" if model_type == "GMM + NN" else "PARZEN",
+    train_params = {
+        "epochs": 700,
+        "batch_size": 10,
+        "loss_type": "huber_loss",
+        "optimizer": "RMSprop",
+        "learning_rate": 0.0023067,
     }
 
     gmm_target_params = {
-        "n_components": 6,
-        "n_init": 50,
-        "max_iter": 200,
-        "init_params": "kmeans",
+        "n_components": 7,
+        "n_init": 30,
+        "max_iter": 30,
+        "init_params": "k-means++",
         "random_state": dataset_params["seed"],
     }
 
