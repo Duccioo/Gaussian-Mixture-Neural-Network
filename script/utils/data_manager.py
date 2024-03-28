@@ -2,7 +2,6 @@ import numpy as np
 import os
 from attrs import define, field
 from scipy.stats import logistic, expon
-import numba as nb
 
 # ---
 from .utils import check_base_dir, generate_unique_id

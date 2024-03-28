@@ -23,9 +23,7 @@ def console_bullet_list(console, list_elem: list = []):
             console.print("- ", element)
 
 
-def console_table_list_of_dict(
-    console, list_of_dict: list = [{}], inplace: bool = True
-):
+def console_table_list_of_dict(console, list_of_dict: list = [{}], inplace: bool = True):
     table = Table(show_header=True, header_style="bold magenta", box=box.MARKDOWN)
     for key, value in list_of_dict[0].items():
         table.add_column(key)
@@ -42,9 +40,7 @@ def console_table_list_of_dict(
     return table
 
 
-def console_table_dict(
-    console, dict: dict = {}, header: tuple = ("KEY", "VALUE"), inplace: bool = True
-):
+def console_table_dict(console, dict: dict = {}, header: tuple = ("KEY", "VALUE"), inplace: bool = True):
     table = Table(show_header=True, header_style="bold magenta", box=box.MARKDOWN)
     table.add_column(header[0])
     table.add_column(header[1])
@@ -142,32 +138,30 @@ class Summary:
 
         self.date_experiment = datetime.now().strftime("%Y-%m-%d %H-%M")
 
-        self.id_experiment = generate_unique_id(
-            [
-                self.seed,
-                pdf.params,
-                pdf.default,
-                self.n_samples,
-                dataset_params,
-                model_params,
-                train_params,
-                target_params,
-                model_type,
-            ],
-            lenght=6,
+        self.id_experiment = str(
+            generate_unique_id(
+                [
+                    self.seed,
+                    pdf.params,
+                    pdf.default,
+                    self.n_samples,
+                    dataset_params,
+                    model_params,
+                    train_params,
+                    target_params,
+                    model_type,
+                ],
+                lenght=6,
+            )
         )
 
         self.base_dir = check_base_dir(BASE_RESULT_DIR)
         path_subtype = check_base_dir(BASE_RESULT_DIR, model_type)
         if overwrite:
-            self.experiment_dir = check_base_dir(
-                path_subtype, self.id_experiment + " " + experiment
-            )
+            self.experiment_dir = check_base_dir(path_subtype, self.id_experiment + " " + experiment)
         else:
             self.experiment_dir = check_base_dir(
-                unique_dir(
-                    os.path.join(path_subtype, self.id_experiment + " " + experiment)
-                )
+                unique_dir(os.path.join(path_subtype, self.id_experiment + " " + experiment))
             )
 
         self.filename_summary_md_path = os.path.join(
@@ -239,7 +233,9 @@ class Summary:
             learning_rate = self.train_params["learning_rate"]
 
             if self.target_type == "GMM":
-                target_params_specific = f"{self.target_params['init_params']} C{self.target_params['n_components']} "
+                target_params_specific = (
+                    f"{self.target_params['init_params']} C{self.target_params['n_components']} "
+                )
             elif self.target_type == "PARZEN":
                 target_params_specific = f"H{self.target_params['h']}"
 
@@ -328,9 +324,7 @@ class Summary:
             if self.train_params != None:
                 console = Console(file=file)
                 console.print("## Training")
-                console.print(
-                    f"<details><summary>All Params used for the training </summary>\n"
-                )
+                console.print(f"<details><summary>All Params used for the training </summary>\n")
                 console_table_dict(console, self.train_params)
                 console.print("</details>")
                 console.print("")
@@ -343,9 +337,7 @@ class Summary:
             console.print(f"#### Model Params:")
 
             if self.model_params.items():
-                console.print(
-                    f"<details><summary>All Params used in the model </summary>\n"
-                )
+                console.print(f"<details><summary>All Params used in the model </summary>\n")
                 console_table_dict(console, self.model_params)
                 console.print("</details>")
                 console.print("")
@@ -399,9 +391,7 @@ class Summary:
         if save == True:
             extension = ".png"
             img_folder_path = self.experiment_dir
-            img_folder_name = os.path.join(
-                img_folder_path, name + "_" + str(self.id_experiment)
-            )
+            img_folder_name = os.path.join(img_folder_path, name + "_" + str(self.id_experiment))
             plt.savefig(img_folder_name + extension)
             with open(self.filename_summary_md_path, "a") as file:
                 console = Console(file=file)
@@ -444,9 +434,7 @@ class Summary:
             if save == True:
                 extension = ".png"
                 img_folder_path = self.experiment_dir
-                img_folder_name = os.path.join(
-                    img_folder_path, fig_name + "_" + str(self.id_experiment)
-                )
+                img_folder_name = os.path.join(img_folder_path, fig_name + "_" + str(self.id_experiment))
                 plt.savefig(img_folder_name + extension)
                 with open(self.filename_summary_md_path, "a") as file:
                     console = Console(file=file)
@@ -469,7 +457,7 @@ class Summary:
         y_target: list = None,
     ):
         metrics = []
-        self.model_metrics = calculate_metrics(y_true_test, y_predected)
+        self.model_metrics = calculate_metrics(y_true_test, y_predected, 4)
         if y_target is not None:
             target_metrics = calculate_metrics(y_true_train, y_target)
             metrics.append({"type": "Target", **target_metrics})
@@ -519,9 +507,7 @@ class Summary:
             if isinstance(value, int) or isinstance(value, str):
                 console.print(f"#### {key} :\n - {str(value)}")
                 if key == "smiles":
-                    mol_filepath = os.path.join(
-                        self.directory_base, "example_molecule.png"
-                    )
+                    mol_filepath = os.path.join(self.directory_base, "example_molecule.png")
                     console.print("\n<img src='example_molecule.png'>")
 
             else:
@@ -540,13 +526,9 @@ if __name__ == "__main__":
         table.add_column("Released", justify="center", style="cyan", no_wrap=True)
         table.add_column("Title", justify="center", style="magenta")
 
-        table.add_row(
-            "Dec 20, 2019", "Star Wars: The Rise of Skywalker", "$952,110,690"
-        )
+        table.add_row("Dec 20, 2019", "Star Wars: The Rise of Skywalker", "$952,110,690")
         table.add_row("May 25, 2018", "Solo: A Star Wars Story", "$393,151,347")
-        table.add_row(
-            "Dec 15, 2017", "Star Wars Ep. V111: The Last Jedi", "$1,332,539,889"
-        )
+        table.add_row("Dec 15, 2017", "Star Wars Ep. V111: The Last Jedi", "$1,332,539,889")
         for i in range(3):
             table.add_row("Dec 16, 2016", "Rogue One: A Star Wars Story", f"{i*100}")
 

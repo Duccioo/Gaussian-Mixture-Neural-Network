@@ -88,22 +88,22 @@ if __name__ == "__main__":
     # --- MLP PARAMS --------
     mlp_params = {
         "dropout": 0.000,
-        "hidden_layer": [(64, nn.ReLU()), (26, nn.Tanh())],
+        "hidden_layer": [(42, nn.Tanh()), (48, nn.Tanh())],
         "last_activation": "lambda",
     }
 
     train_params = {
-        "epochs": 700,
-        "batch_size": 10,
+        "epochs": 220,
+        "batch_size": 4,
         "loss_type": "huber_loss",
         "optimizer": "RMSprop",
-        "learning_rate": 0.0023067,
+        "learning_rate": 0.002207,
     }
 
     gmm_target_params = {
         "n_components": 7,
-        "n_init": 30,
-        "max_iter": 30,
+        "n_init": 100,
+        "max_iter": 100,
         "init_params": "k-means++",
         "random_state": dataset_params["seed"],
     }
@@ -209,9 +209,7 @@ if __name__ == "__main__":
 
         model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])
         cb = MetricTracker()
-        trainer = L.Trainer(
-            accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb]
-        )
+        trainer = L.Trainer(accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb])
         trainer.fit(model, train_loader, val_loader)
         train_loss = cb.train_epoch_losses
         val_loss = cb.val_epoch_losses
@@ -292,4 +290,5 @@ if __name__ == "__main__":
 
     print("ID EXPERIMENT:", summary.id_experiment)
     print("R2 score: ", r2_value)
+    print("KL divergence: ", summary.model_metrics.get("kl"))
     print("Done!")

@@ -22,11 +22,12 @@ def start_optuna_mlp():
         "learning_rate": (1e-5, 1e-1),
         "epoch": (100, 1000),
         "batch_size": (2, 64),
+        "loss": ("mse_loss", "huber_loss"),
         # MODEL PARAMS:
         "n_layers": (1, 4),
         "range_neurons": (4, 64),
         "range_dropout": 0,
-        "suggest_activation": ("relu", "tanh", "sigmoid"),
+        "suggest_activation": ("relu", "tanh"),
         "suggest_last_activation": ("lambda", None),
         # GMM PARAMS:
         "n_components": (2, 15),
@@ -43,23 +44,23 @@ def start_optuna_mlp():
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"BEST ALLIN {params['target_type']} MLP {params['n_samples']} PROVA"  # Unique identifier of the study.
+    study_name = f"BEST ALLIN {params['target_type']} MLP {params['n_samples']} w/ KL divergence 2"  # Unique identifier of the study.
     storage_name = "sqlite:///optuna-02.db"
 
     study = optuna.create_study(
         study_name=study_name,
         storage=storage_name,
-        direction="maximize",
+        directions=["maximize", "minimize"],
         load_if_exists=True,
     )
 
-    study.set_metric_names(["R2 score"])
+    study.set_metric_names(["R2 score", "KL divergence"])
 
     tmp_dir = tempfile.TemporaryDirectory()
 
     study.optimize(
         lambda trial: objective_MLP_allin_gmm(trial, params, tmp_dir.name, device),
-        n_trials=5,
+        n_trials=500,
         timeout=None,
         n_jobs=1,
         show_progress_bar=True,
@@ -76,12 +77,12 @@ def start_optuna_mlp():
     print("  Number of complete trials: ", len(complete_trials))
 
     print("Best trial:")
-    trial = study.best_trial
+    trial = study.best_trials
 
-    print("  Value: ", trial.value)
+    print("  Value: ", trial[0].value)
 
     print("  Params: ")
-    for key, value in trial.params.items():
+    for key, value in trial[0].params.items():
         print("    {}: {}".format(key, value))
 
 

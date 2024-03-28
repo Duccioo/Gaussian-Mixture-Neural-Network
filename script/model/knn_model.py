@@ -1,5 +1,6 @@
 import numpy as np
 from attrs import define, field
+import math
 
 
 @define(slots=True)
@@ -13,7 +14,9 @@ class KNN_Model:
 
         if _kn > len(training):
             self.kn = self.k1
-            print(f"kn ({_kn}) is too large to fit in the training set ({len(training)})\nSetting kn = {self.kn}")
+            print(
+                f"kn ({_kn}) is too large to fit in the training set ({len(training)})\nSetting kn = {self.kn}"
+            )
         else:
             self.kn = _kn
 
@@ -29,6 +32,9 @@ class KNN_Model:
         distances = np.abs(data - point)
         sorted_distances = np.sort(distances)
         kn_density = (kn / n) / (sorted_distances[kn] * 2)
+        if math.isnan(kn_density):
+            kn_density = 0
+
         return kn_density
 
 

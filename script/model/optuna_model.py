@@ -17,6 +17,7 @@ from utils.data_manager import PDF
 from model.gm_model import gen_target_with_gm_parallel
 from model.parzen_model import ParzenWindow_Model, gen_target_with_parzen_parallel
 from utils.utils import generate_unique_id, set_seed
+from utils.metrics import calculate_metrics
 
 
 def define_MLP(trial: optuna.Trial, params: dict = {}):
@@ -96,6 +97,9 @@ def objective_MLP(trial: optuna.Trial, X_train, Y_train, X_test, Y_test, params,
     optimizer_name = trial.suggest_categorical("optimizer", params["optimizer"])
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
 
+    loss_name = trial.suggest_categorical("loss", params["loss"])
+    loss_type = getattr(F, loss_name)
+
     batch_size = trial.suggest_int("batch_size", params["batch_size"][0], params["batch_size"][1], step=2)
 
     X_train = torch.tensor(X_train, dtype=torch.float32)
@@ -122,7 +126,7 @@ def objective_MLP(trial: optuna.Trial, X_train, Y_train, X_test, Y_test, params,
             optimizer.zero_grad()
             output = model(data)
 
-            loss_value = F.huber_loss(output, target)
+            loss_value = loss_type(output, target)
             loss_value.backward()
             optimizer.step()
 
@@ -131,16 +135,17 @@ def objective_MLP(trial: optuna.Trial, X_train, Y_train, X_test, Y_test, params,
         with torch.no_grad():
             output = model(X_test)
 
-        r2_value = r2_score(Y_test, output.numpy())
+        metrics = calculate_metrics(Y_test, output.numpy(), 8)
         # mse = mean_squared_error(output.numpy(), Y_test)
 
-        trial.report(r2_value, epoch)
+        # trial.report(metrics["r2"], epoch)
 
         # Handle pruning based on the intermediate value.
-        if trial.should_prune():
-            raise optuna.exceptions.TrialPruned()
+        # if trial.should_prune():
+        #     raise optuna.exceptions.TrialPruned()
+        # print(metrics["r2"])
 
-    return r2_value
+    return metrics["r2"], metrics["kl"]
 
 
 def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
@@ -260,6 +265,6 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
             n_jobs=3,
         )
 
-    r2_score = objective_MLP(trial, x_training, gen_target_y, x_test, y_test, params, device)
+    metrics = objective_MLP(trial, x_training, gen_target_y, x_test, y_test, params, device)
 
-    return r2_score
+    return metrics

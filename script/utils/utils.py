@@ -162,7 +162,7 @@ def generate_unique_id(params: list = [], lenght: int = 10) -> str:
     hex_dig = hash_obj.hexdigest()
 
     # Restituiamo i primi 8 caratteri del valore hash come ID univoco
-    return hex_dig[:lenght]
+    return str(hex_dig[:lenght])
 
 
 def plot_2pdf(x1, y1, x2, y2, label1="pdf 1", label2="pdf 2"):
@@ -320,8 +320,7 @@ def write_csv(
             csv_reader = csv.DictReader(csv_file)
             for row in csv_reader:
                 if (
-                    row[check_colomn.replace("_", " ").title()]
-                    == kwargs.get(check_colomn)
+                    row[check_colomn.replace("_", " ").title()] == kwargs.get(check_colomn)
                     and kwargs.get(check_colomn) in log_entry
                 ):
                     return
@@ -346,6 +345,4 @@ if __name__ == "__main__":
     print(absolute_path)
     print(full_path)
     # check_base_dir("prova", "dati", ["prova1"])
-    write_result(
-        experiment_type="AAA", experiment_params="No", log_name_file="test.csv"
-    )
+    write_result(experiment_type="AAA", experiment_params="No", log_name_file="test.csv")
