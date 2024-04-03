@@ -14,12 +14,28 @@ from utils.data_manager import PDF
 
 
 def objective_knn(trial: optuna.Trial, params):
-    knn_k1 = trial.suggest_float("k1", params["k1"][0], params["k1"][1])
-    knn_kn = trial.suggest_int("kn", params["kn"][0], params["kn"][1])
-    n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
 
-    seed = trial.suggest_int("seed", params["seed"][0], params["seed"][1])
-    X_train, _, X_test, Y_test = load_dataset(n_samples, seed)
+    if isinstance(params["n_samples"], (list, tuple)):
+        n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
+    else:
+        n_samples = params["n_samples"]
+
+    if isinstance(params["seed"], (list, tuple)):
+        seed = trial.suggest_int("seed", params["seed"][0], params["seed"][1])
+    else:
+        seed = params["seed"]
+
+    if isinstance(params["k1"], (list, tuple)):
+        knn_k1 = trial.suggest_float("k1", params["k1"][0], params["k1"][1])
+    else:
+        knn_k1 = params["k1"]
+
+    if isinstance(params["kn"], (list, tuple)):
+        knn_kn = trial.suggest_int("kn", params["kn"][0], params["kn"][1])
+    else:
+        knn_kn = params["kn"]
+
+    X_train, _, X_test, Y_test = load_dataset(n_samples, seed, type=params["dataset_type"])
 
     model_parzen = KNN_Model(knn_k1, knn_kn)
     model_parzen.fit(training=X_train)
@@ -33,14 +49,38 @@ def objective_knn(trial: optuna.Trial, params):
 
 
 def objective_gmm(trial: optuna.Trial, params, X_train, X_test, Y_test):
-    n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
-    seed = trial.suggest_int("seed", params["seed"][0], params["seed"][1])
-    n_components = trial.suggest_int("n_components", params["n_components"][0], params["n_components"][1])
-    init_param_gmm = trial.suggest_categorical("init_params_gmm", params["init_params_gmm"])
-    max_iter = trial.suggest_int("max_iter", params["max_iter"][0], params["max_iter"][1])
-    n_init = trial.suggest_int("n_init", params["n_init"][0], params["n_init"][1])
 
-    X_train, _, X_test, Y_test = load_dataset(n_samples, seed)
+    if isinstance(params["n_samples"], (list, tuple)):
+        n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
+    else:
+        n_samples = params["n_samples"]
+
+    if isinstance(params["seed"], (list, tuple)):
+        seed = trial.suggest_int("seed", params["seed"][0], params["seed"][1])
+    else:
+        seed = params["seed"]
+
+    if isinstance(params["n_components"], (list, tuple)):
+        n_components = trial.suggest_int("n_components", params["n_components"][0], params["n_components"][1])
+    else:
+        n_components = params["n_components"]
+
+    if isinstance(params["init_params"], (list, tuple)):
+        init_param_gmm = trial.suggest_categorical("init_params", params["init_params"])
+    else:
+        init_param_gmm = params["init_params"]
+
+    if isinstance(params["max_iter"], (list, tuple)):
+        max_iter = trial.suggest_int("max_iter", params["max_iter"][0], params["max_iter"][1], step=10)
+    else:
+        max_iter = params["max_iter"]
+
+    if isinstance(params["n_init"], (list, tuple)):
+        n_init = trial.suggest_int("n_init", params["n_init"][0], params["n_init"][1], step=10)
+    else:
+        n_init = params["n_init"]
+
+    X_train, _, X_test, Y_test = load_dataset(n_samples, seed, type=params["dataset_type"])
 
     # train the GMM model
     model_gmm = GaussianMixture(
@@ -110,16 +150,26 @@ def load_dataset(n_samples: int = 100, seed: int = 42, type: str = "multivariate
 if __name__ == "__main__":
 
     params = {
+        # KNN
         "k1": [0.1, 10],
         "kn": [1, 100],
-        "n_samples": [100, 400],
+        # PARZEN
+        "h": [0.1, 1.0],
+        # GMM
+        "init_params": ["k-means++", "kmeans", "random", "random_from_data"],
+        "n_init": [10, 100],
+        "max_iter": [10, 100],
+        # DATASET
+        "n_samples": 100,
         "seed": [1, 100],
-        "dataset_type": ["multivariate"],
+        "dataset_type": "multivariate",  # multivariate or exp
+        # OBJECTIVE
+        "objective_name": "objective_knn",  # objective_knn, objective_gmm, objective_parzen
     }
 
     # optuna.logging.get_logger("optuna")
-    study_name = f"perfect KNN 2"  # Unique identifier of the study.
-    storage_name = "sqlite:///optuna-v0.db"
+    study_name = f"{params['objective_name']} {params['dataset_type']} {params['n_samples']}"  # Unique identifier of the study.
+    storage_name = "sqlite:///optuna-statistic.db"
     study = optuna.create_study(
         study_name=study_name,
         storage=storage_name,
@@ -128,12 +178,11 @@ if __name__ == "__main__":
     )
 
     study.set_metric_names(["R2 score"])
-    
-    # objective = getattr()
-    # optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
+
+    objective = globals()[params["objective_name"]]
 
     study.optimize(
-        lambda trial: objective_knn(trial, params),
+        lambda trial: objective(trial, params),
         n_trials=300,
         timeout=None,
         n_jobs=-1,
@@ -159,18 +208,18 @@ if __name__ == "__main__":
         print("    {}: {}".format(key, value))
 
     # TESTING BEST RESULT
-    K1 = 1.4461890579977732
-    KN = 100
-    n_samples = 386
-    seed = 42
-    X_train, Y_train, X_test, Y_test = load_dataset(n_samples=n_samples, seed=seed, type="exponential")
+    # K1 = 1.4461890579977732
+    # KN = 100
+    # n_samples = 386
+    # seed = 42
+    # X_train, Y_train, X_test, Y_test = load_dataset(n_samples=n_samples, seed=seed, type="exponential")
 
-    model_knn = KNN_Model(k1=K1, kn=KN)
-    model_knn.fit(training=X_train)
-    pdf_predicted = model_knn.predict(test=X_test)
-    r2_value = r2_score(pdf_predicted, Y_test)
-    print(r2_value)
+    # model_knn = KNN_Model(k1=K1, kn=KN)
+    # model_knn.fit(training=X_train)
+    # pdf_predicted = model_knn.predict(test=X_test)
+    # r2_value = r2_score(pdf_predicted, Y_test)
+    # print(r2_value)
 
-    sns.lineplot(x=X_test.flatten(), y=Y_test.flatten(), color="green", label="True")
-    sns.lineplot(x=X_test.flatten(), y=pdf_predicted, label="base", color="red")
-    plt.legend()
+    # sns.lineplot(x=X_test.flatten(), y=Y_test.flatten(), color="green", label="True")
+    # sns.lineplot(x=X_test.flatten(), y=pdf_predicted, label="base", color="red")
+    # plt.legend()

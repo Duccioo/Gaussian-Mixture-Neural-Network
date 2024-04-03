@@ -40,7 +40,7 @@ def start_optuna_mlp():
         "dataset_type": "exp",  # multivariate or exp
         "n_samples": 100,
         "seed": 42,
-        "target_type": "GMM",
+        "target_type": "PARZEN",
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
