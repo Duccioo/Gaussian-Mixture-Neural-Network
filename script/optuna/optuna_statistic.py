@@ -5,9 +5,14 @@ from optuna.trial import TrialState
 from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
+import argparse
 
+import sys
+import os
 
 # ---
+a = sys.path.append((os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from model.knn_model import KNN_Model
 from model.parzen_model import ParzenWindow_Model
 from utils.data_manager import PDF
@@ -48,7 +53,7 @@ def objective_knn(trial: optuna.Trial, params):
     return r2_value
 
 
-def objective_gmm(trial: optuna.Trial, params, X_train, X_test, Y_test):
+def objective_gmm(trial: optuna.Trial, params):
 
     if isinstance(params["n_samples"], (list, tuple)):
         n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
@@ -101,7 +106,7 @@ def objective_gmm(trial: optuna.Trial, params, X_train, X_test, Y_test):
     return r2_value
 
 
-def objective_parzen(trial: optuna.Trial, params, X_train, X_test, Y_test):
+def objective_parzen(trial: optuna.Trial, params):
 
     if isinstance(params["n_samples"], (list, tuple)):
         n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
@@ -147,7 +152,21 @@ def load_dataset(n_samples: int = 100, seed: int = 42, type: str = "multivariate
     return X_train, Y_train, X_test, Y_test
 
 
+def arg_parsing():
+    # command line parsing
+    parser = argparse.ArgumentParser(description="Project for AI Exam")
+    parser.add_argument("--dataset_type", type=str, default="multivariate")
+    parser.add_argument("--objective_name", type=str, default="objective_parzen")
+    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--samples", type=int, default=100)
+    args = parser.parse_args()
+
+    return args
+
+
 if __name__ == "__main__":
+
+    args = arg_parsing()
 
     params = {
         # KNN
@@ -160,11 +179,11 @@ if __name__ == "__main__":
         "n_init": [10, 100],
         "max_iter": [10, 100],
         # DATASET
-        "n_samples": 100,
+        "n_samples": args.samples,
         "seed": [1, 100],
-        "dataset_type": "multivariate",  # multivariate or exp
+        "dataset_type": args.dataset_type,  # multivariate or exp
         # OBJECTIVE
-        "objective_name": "objective_knn",  # objective_knn, objective_gmm, objective_parzen
+        "objective_name": args.objective_name,  # objective_knn, objective_gmm, objective_parzen
     }
 
     # optuna.logging.get_logger("optuna")
