@@ -1,35 +1,31 @@
 # Experiment Details Experiment  C10 S150
 > from experiment with GMM + NN
-> on 2024-04-03 17-44
+> on 2024-04-03 17-57
 ## Metrics:
-                                                                                                      
-| type   | r2            | mse          | max_error    | ise          | kl           | evs           |
-|--------|---------------|--------------|--------------|--------------|--------------|---------------|
-| Target | -1.0793589597 | 0.0059723144 | 0.2829634476 | 0.0059723144 | 0.2619843707 | -1.0572539783 |
-| Model  | 0.6449        | 0.0011       | 0.0679       | 0.0109       | 0.0394       | 0.8441        |
-                                                                                                      
+                                                                                              
+| type   | r2           | mse          | max_error    | ise          | kl     | evs          |
+|--------|--------------|--------------|--------------|--------------|--------|--------------|
+| Target | 0.3368920515 | 0.1472283618 | 1.3128733578 | 0.1472283618 | 100000 | 0.3372618091 |
+| Model  | 0.8399       | 0.0261       | 0.6347       | 0.0833       | 100000 | 0.8626       |
+                                                                                              
 ## Plot Prediction
 
-<img src="pdf_129dd2e8.png">
+<img src="pdf_eef66e17.png">
 
 ## Loss Plot
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2e8 
-Experiment  C10 S150\loss_129dd2e8.png">
+<img src="loss_eef66e17.png">
 
 ## Dataset
 
-<details><summary>PDF set as default <b>MULTIVARIATE_1254</b></summary>
+<details><summary>PDF attribute</summary>
 
 #### Dimension 1
-                                      
-| type        | rate | weight |      |
-|-------------|------|--------|------|
-| exponential | 1    | 0.2    |      |
-| logistic    | 4    | 0.8    | 0.25 |
-| logistic    | 5.5  | 0.7    | 0.3  |
-| exponential | -1   | 0.25   | -10  |
-                                      
+                               
+| type        | rate | weight |
+|-------------|------|--------|
+| exponential | 0.6  | 1      |
+                               
 </details>
                               
 | KEY                | VALUE |
@@ -37,7 +33,7 @@ Experiment  C10 S150\loss_129dd2e8.png">
 | dimension          | 1     |
 | seed               | 42    |
 | n_samples_training | 100   |
-| n_samples_test     | 988   |
+| n_samples_test     | 319   |
 | n_samples_val      | 50    |
 | notes              |       |
                               

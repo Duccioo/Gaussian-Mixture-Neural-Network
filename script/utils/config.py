@@ -10,3 +10,9 @@ MULTIVARIATE_1254 = [
         {"type": "exponential", "mean": -1, "weight": 0.25, "shift": -10},
     ]
 ]
+
+EXPONENTIAL_06 = [
+    [
+        {"type": "exponential", "rate": 0.6},
+    ]
+]

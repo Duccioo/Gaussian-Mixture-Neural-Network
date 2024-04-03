@@ -21,13 +21,13 @@ def start_optuna_mlp():
         "optimizer": ("Adam", "RMSprop"),
         "learning_rate": (1e-5, 1e-1),
         "epoch": (100, 1000),
-        "batch_size": (2, 64),
+        "batch_size": (2, 80),
         "loss": ("mse_loss", "huber_loss"),
         # MODEL PARAMS:
-        "n_layers": (1, 4),
+        "n_layers": (1, 5),
         "range_neurons": (4, 64),
         "range_dropout": 0,
-        "suggest_activation": ("relu", "tanh"),
+        "suggest_activation": ("relu", "tanh", "sigmoid"),
         "suggest_last_activation": ("lambda", None),
         # GMM PARAMS:
         "n_components": (2, 15),
@@ -35,32 +35,33 @@ def start_optuna_mlp():
         "n_init": (10, 100),
         "max_iter": (10, 100),
         # PARZEN PARAMS:
-        "h": (0.001, 3),
+        "h": (0.001, 1),
         # DATASET PARAMS:
+        "dataset_type": "exp",  # multivariate or exp
         "n_samples": 100,
-        "seed": (0, 100),
+        "seed": 42,
         "target_type": "GMM",
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"BEST ALLIN {params['target_type']} MLP {params['n_samples']} w/ KL divergence 2"  # Unique identifier of the study.
-    storage_name = "sqlite:///optuna-02.db"
+    study_name = f"{params['dataset_type']} {params['target_type']} MLP {params['n_samples']} fixed 42 seed (1)"  # Unique identifier of the study.
+    storage_name = f"sqlite:///optuna-{params['n_samples']} .db"
 
     study = optuna.create_study(
         study_name=study_name,
         storage=storage_name,
-        directions=["maximize", "minimize"],
+        direction="maximize",
         load_if_exists=True,
     )
 
-    study.set_metric_names(["R2 score", "KL divergence"])
+    study.set_metric_names(["R2 score"])
 
     tmp_dir = tempfile.TemporaryDirectory()
 
     study.optimize(
         lambda trial: objective_MLP_allin_gmm(trial, params, tmp_dir.name, device),
-        n_trials=500,
+        n_trials=1000,
         timeout=None,
         n_jobs=1,
         show_progress_bar=True,

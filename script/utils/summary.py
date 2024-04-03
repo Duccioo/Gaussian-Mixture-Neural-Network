@@ -126,7 +126,7 @@ class Summary:
 
         self.model_params = model_params
 
-        if model_type in ["Parzen Windows", "Parzen Window", "GMM", "KNN"]:
+        if model_type in ["Parzen Windows", "Parzen Window", "GMM", "KNN", "Parzen", "PARZEN", "parzen"]:
             self.target_params = None
             self.train_params = None
             self.target_type = None
@@ -248,7 +248,7 @@ class Summary:
             learning_rate = None
 
         # Questo c'è sempre
-        pdf_type = self.pdf.default
+        pdf_type = self.pdf.name
         n_samples = self.pdf.n_samples_training  # del training
         pdf_param = self.pdf.params
         dimension = len(self.pdf.params)
@@ -390,7 +390,7 @@ class Summary:
             extension = ".png"
 
             img_folder_name = os.path.join(name + "_" + str(self.id_experiment))
-            plt.savefig(img_folder_name + extension)
+            plt.savefig(os.path.join(self.experiment_dir, img_folder_name + extension))
             with open(self.filename_summary_md_path, "a") as file:
                 console = Console(file=file)
                 console.print("## Plot Prediction")
@@ -432,13 +432,13 @@ class Summary:
             if save == True:
                 extension = ".png"
                 img_folder_path = self.experiment_dir
-                img_folder_name = os.path.join(img_folder_path, fig_name + "_" + str(self.id_experiment))
-                plt.savefig(img_folder_name + extension)
+                img_folder_name = fig_name + "_" + str(self.id_experiment)
+                plt.savefig(os.path.join(img_folder_path, img_folder_name + extension))
                 with open(self.filename_summary_md_path, "a") as file:
                     console = Console(file=file)
                     console.print("## Loss Plot")
                     console.print("")
-                    console.print(f'<img src="{img_folder_name + extension}">')
+                    console.print(f'<img src="{ img_folder_name + extension}">')
                     console.print("")
 
             if show == True:

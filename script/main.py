@@ -1,36 +1,25 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import os
 
 from sklearn.metrics import (
     r2_score,
-    mean_squared_error,
-    max_error,
-    explained_variance_score,
 )
 from sklearn.mixture import GaussianMixture
-from scipy.stats import entropy
 import argparse
 
 # main.py
-import torch, torch.nn as nn, torch.nn.functional as F
 import lightning as L
-from lightning.pytorch.callbacks import Callback
 from sklearn.mixture import GaussianMixture
 from sklearn.metrics import r2_score
-import seaborn as sns
-from matplotlib import pyplot as plt
 
 
 # ---
-from utils.data_manager import load_multivariate_dataset
 from model.gm_model import gen_target_with_gm_parallel
-from model.nn_model import NeuralNetworkModular
 from model.parzen_model import ParzenWindow_Model, gen_target_with_parzen_parallel
 from model.knn_model import KNN_Model
-from utils.utils import set_seed
+from utils.utils import set_seed, check_base_dir, generate_unique_id
 from utils.summary import Summary
 from model.lightning_model import LitModularNN, MetricTracker
 from utils.data_manager import PDF
@@ -65,7 +54,7 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     # select model type from "GMM" "MLP" "Parzen Window" "KNN" "Parzen Window + NN" "GMM + NN"
-    model_type = "KNN"
+    model_type = "PNN"
 
     dataset_params = {
         "n_samples": args.samples,
@@ -93,7 +82,7 @@ if __name__ == "__main__":
     }
 
     train_params = {
-        "epochs": 540,
+        "epochs": 300,
         "batch_size": 26,
         "loss_type": "mse_loss",
         "optimizer": "Adam",
@@ -113,7 +102,14 @@ if __name__ == "__main__":
     set_seed(dataset_params["seed"])
 
     if args.pdf in ["exponential", "exp"]:
-        pdf = PDF({"type": "exponential", "mean": 0.6}, name="exponential standard")
+        pdf = PDF(
+            [
+                [
+                    {"type": "exponential", "rate": 0.6},
+                ]
+            ],
+            name="exponential 0.6",
+        )
     elif args.pdf in ["multimodal logistic", "logistic"]:
         pdf = PDF(
             [
@@ -146,11 +142,28 @@ if __name__ == "__main__":
 
     # --------------------------------------------------------------------
 
-    if model_type in ["MLP", "GMM + NN", "Parzen Window + NN"]:
+    if model_type in ["MLP", "GMM + NN", "Parzen Window + NN", "PNN", "GNN"]:
         print("Training Neural Network")
         model_params = mlp_params
 
+        # check if a saved target file exists:
+
+        base_dir = ["..", "data", "MLP"]
+        base_dir = check_base_dir(base_dir)
+
         if dataset_params["target_type"] == "GMM":
+            # generate the id
+            target_unique_id = generate_unique_id(
+                [pdf.training_X, pdf.test_Y, args.bias, gmm_target_params, dataset_params["seed"]], 5
+            )
+
+            save_filename = f"train_mlp{'_Biased' if args.bias == True else '' }_{gmm_target_params['init_params']}_C{gmm_target_params['n_components']}"
+
+            if save_filename is not None:
+                save_filename = save_filename.split(".")[0]
+                save_filename = save_filename + "_" + target_unique_id + ".npz"
+                save_filename = os.path.join(base_dir, save_filename)
+
             gm_model = GaussianMixture(**gmm_target_params)
 
             _, target_y = gen_target_with_gm_parallel(
@@ -173,7 +186,6 @@ if __name__ == "__main__":
                 X=pdf.training_X,
                 progress_bar=True,
                 n_jobs=-1,
-                save_filename=f"train_old-{pw_target_params['h']}.npz",
             )
 
             target_y = torch.tensor(target_y, dtype=torch.float32)
@@ -229,7 +241,7 @@ if __name__ == "__main__":
         target_y = target_y.detach().numpy()
 
     # ----------------------------------------------------------------------
-    elif model_type == "Parzen Window":
+    elif model_type in ["Parzen Window", "PARZEN", "parzen"]:
         model_params = parzen_window_params
         model = ParzenWindow_Model(h=parzen_window_params["h"])
         model.fit(training=X_train)

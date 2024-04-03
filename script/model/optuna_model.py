@@ -138,14 +138,14 @@ def objective_MLP(trial: optuna.Trial, X_train, Y_train, X_test, Y_test, params,
         metrics = calculate_metrics(Y_test, output.numpy(), 8)
         # mse = mean_squared_error(output.numpy(), Y_test)
 
-        # trial.report(metrics["r2"], epoch)
+        trial.report(metrics["r2"], epoch)
 
         # Handle pruning based on the intermediate value.
-        # if trial.should_prune():
-        #     raise optuna.exceptions.TrialPruned()
+        if trial.should_prune():
+            raise optuna.exceptions.TrialPruned()
         # print(metrics["r2"])
 
-    return metrics["r2"], metrics["kl"]
+    return metrics["r2"]
 
 
 def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
@@ -181,8 +181,10 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
     """
 
     # è un wrapper del objective_MLP per scegliere anche i parametri del dataset
-
-    pdf = PDF(default="MULTIVARIATE_1254")
+    if params["dataset_type"] == "multivariate":
+        pdf = PDF(default="MULTIVARIATE_1254")
+    else:
+        pdf = PDF([[{"type": "exponential", "rate": 0.6}]], name="exponential 0.6")
     bias = False
     stepper_x_test = 0.01  # genero con la multivariate circa 1000 esempi
 
@@ -249,6 +251,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
         )
 
     elif params["target_type"] == "PARZEN":
+        print("using parzen window")
         if isinstance(params["h"], (list, tuple)):
             h = trial.suggest_float("h", params["h"][0], params["h"][1])
         else:

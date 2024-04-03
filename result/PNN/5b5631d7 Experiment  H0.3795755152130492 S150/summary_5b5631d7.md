@@ -1,35 +1,31 @@
-# Experiment Details Experiment  C10 S150
-> from experiment with GMM + NN
-> on 2024-04-03 17-44
+# Experiment Details Experiment  H0.3795755152130492 S150
+> from experiment with PNN
+> on 2024-04-03 18-17
 ## Metrics:
-                                                                                                      
-| type   | r2            | mse          | max_error    | ise          | kl           | evs           |
-|--------|---------------|--------------|--------------|--------------|--------------|---------------|
-| Target | -1.0793589597 | 0.0059723144 | 0.2829634476 | 0.0059723144 | 0.2619843707 | -1.0572539783 |
-| Model  | 0.6449        | 0.0011       | 0.0679       | 0.0109       | 0.0394       | 0.8441        |
-                                                                                                      
+                                                                                                   
+| type   | r2           | mse          | max_error   | ise          | kl           | evs          |
+|--------|--------------|--------------|-------------|--------------|--------------|--------------|
+| Target | 0.0336755483 | 0.2145508379 | 1.074900234 | 0.2145508379 | 0.0673385281 | 0.4395711259 |
+| Model  | 0.7003       | 0.0488       | 1.0912      | 0.1558       | 100000       | 0.7226       |
+                                                                                                   
 ## Plot Prediction
 
-<img src="pdf_129dd2e8.png">
+<img src="pdf_5b5631d7.png">
 
 ## Loss Plot
 
-<img src="C:\Users\mecon\Documents\GitHub\Gaussian-Mixture-Neural-Network\script\utils\..\..\result\GMM + NN\129dd2e8 
-Experiment  C10 S150\loss_129dd2e8.png">
+<img src="loss_5b5631d7.png">
 
 ## Dataset
 
-<details><summary>PDF set as default <b>MULTIVARIATE_1254</b></summary>
+<details><summary>PDF attribute</summary>
 
 #### Dimension 1
-                                      
-| type        | rate | weight |      |
-|-------------|------|--------|------|
-| exponential | 1    | 0.2    |      |
-| logistic    | 4    | 0.8    | 0.25 |
-| logistic    | 5.5  | 0.7    | 0.3  |
-| exponential | -1   | 0.25   | -10  |
-                                      
+                               
+| type        | rate | weight |
+|-------------|------|--------|
+| exponential | 0.6  | 1      |
+                               
 </details>
                               
 | KEY                | VALUE |
@@ -37,27 +33,23 @@ Experiment  C10 S150\loss_129dd2e8.png">
 | dimension          | 1     |
 | seed               | 42    |
 | n_samples_training | 100   |
-| n_samples_test     | 988   |
+| n_samples_test     | 319   |
 | n_samples_val      | 50    |
 | notes              |       |
                               
 ## Target
-- Using GMM + NN Target
+- Using PNN Target
 <details><summary>All Params used in the model for generate the target for the MLP </summary>
 
                             
-| KEY          | VALUE     |
-|--------------|-----------|
-| n_components | 10        |
-| n_init       | 100       |
-| max_iter     | 80        |
-| init_params  | k-means++ |
-| random_state | 42        |
+| KEY | VALUE              |
+|-----|--------------------|
+| h   | 0.3795755152130492 |
                             
 </details>
 
 ## Model
-> using model GMM + NN
+> using model PNN
 #### Model Params:
 <details><summary>All Params used in the model </summary>
 
@@ -94,7 +86,7 @@ LitModularNN(
                                
 | KEY           | VALUE       |
 |---------------|-------------|
-| epochs        | 540         |
+| epochs        | 300         |
 | batch_size    | 26          |
 | loss_type     | mse_loss    |
 | optimizer     | Adam        |
