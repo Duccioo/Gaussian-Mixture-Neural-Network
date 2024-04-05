@@ -178,20 +178,29 @@ if __name__ == "__main__":
         "init_params": ["k-means++", "kmeans", "random", "random_from_data"],
         "n_init": [10, 100],
         "max_iter": [10, 100],
+        "n_components": [1, 15],
         # DATASET
         "n_samples": args.samples,
         "seed": [1, 100],
         "dataset_type": args.dataset_type,  # multivariate or exp
         # OBJECTIVE
         "objective_name": args.objective_name,  # objective_knn, objective_gmm, objective_parzen
+        "n_trials": 300,
     }
 
     # optuna.logging.get_logger("optuna")
     study_name = f"{params['objective_name']} {params['dataset_type']} {params['n_samples']}"  # Unique identifier of the study.
-    storage_name = "sqlite:///optuna-statistic.db"
+    storage_name = f"db02-statistic_{params['n_samples']}_{params['dataset_type']}.db"
+
+    db_folder = "optuna_database"
+    storage_path = db_folder + "/" + storage_name
+    storage_path = f"sqlite:///{storage_path}"
+
+    print("storage_path", storage_path)
+
     study = optuna.create_study(
         study_name=study_name,
-        storage=storage_name,
+        storage=storage_path,
         direction="maximize",
         load_if_exists=True,
     )
@@ -202,7 +211,7 @@ if __name__ == "__main__":
 
     study.optimize(
         lambda trial: objective(trial, params),
-        n_trials=300,
+        n_trials=params["n_trials"],
         timeout=None,
         n_jobs=-1,
         show_progress_bar=True,

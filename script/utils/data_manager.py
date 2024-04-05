@@ -337,6 +337,8 @@ class PDF:
         else:
             if n_samples == 0 and percent != 0:
                 n_val = int(percent * self.n_samples_training)
+            elif n_samples == 0 and percent == 0:
+                n_val = 0
             elif n_samples != 0:
                 n_val = n_samples
 

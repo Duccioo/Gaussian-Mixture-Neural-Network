@@ -175,8 +175,8 @@ class Summary:
             console.print(f"> from experiment with {self.model_type}")
             console.print(f"> on {self.date_experiment}")
 
-    def leaderboard(self, file: str = "leaderboard.csv", base_dir: str = None):
-        head_leaderboard = [
+    def scoreboard(self, file: str = "scoreboard.csv", base_dir: str = None):
+        head_scoreboard = [
             "Id",
             "Date",
             "Sample",
@@ -209,20 +209,7 @@ class Summary:
 
         # Relativo solo alle MLP
         target_params_specific = "None"
-        if self.model_type in [
-            "MLP",
-            "GNN",
-            "PNN",
-            "GMM + MLP",
-            "GMNN",
-            "PW + MLP",
-            "GMM + NN",
-            "PW + NN",
-            "Parzen Window + NN",
-            "Parzen Window + MLP",
-            "Parzen + NN",
-            "Parzen Windows + NN",
-        ]:
+        if self.model_type in ["GNN", "PNN"]:
             n_layer = len(self.model_params["hidden_layer"])
             n_neurons = 0  # qui meglio fare una funzione
             for layer in self.model_params["hidden_layer"]:
@@ -265,7 +252,7 @@ class Summary:
             log_name_file=file,
             base_dir=base_dir,
             check_colomn="id",
-            head=head_leaderboard,
+            head=head_scoreboard,
             id=str(self.id_experiment),
             date=self.date_experiment,
             sample=n_samples,
@@ -292,6 +279,55 @@ class Summary:
             target_param=self.target_params,
             seed=self.seed,
         )
+
+        # scrivo nel file solo se è una MLP
+        if self.model_type in ["GNN", "PNN"]:
+
+            file_name = file.strip(".csv")
+            file_name += f"_MLP_{self.n_samples}.csv"
+            write_csv(
+                log_name_file=file_name,
+                base_dir=base_dir,
+                check_colomn="id",
+                id=str(self.id_experiment),
+                date=self.date_experiment,
+                pdf_type=pdf_type,
+                target_type=self.target_type,
+                target_params=target_params_specific,
+                model_type=self.model_type,
+                r2_score=r2_score,
+                train_epoch=epoch,
+                batch_size=batch_size,
+                learning_rate=learning_rate,
+                n_layer=n_layer,
+                n_neurons=n_neurons,
+                loss_type=loss_type,
+                dimension=dimension,
+                max_error_score=max_error_score,
+                k1_score=k1_score,
+                seed=self.seed,
+            )
+        else:
+            file_name = file.strip(".csv")
+            file_name += f"_statistics_{self.n_samples}.csv"
+            write_csv(
+                log_name_file=file_name,
+                base_dir=base_dir,
+                check_colomn="id",
+                id=str(self.id_experiment),
+                date=self.date_experiment,
+                pdf_type=pdf_type,
+                model_type=self.model_type,
+                r2_score=r2_score,
+                dimension=dimension,
+                max_error_score=max_error_score,
+                mse_score=mse_score,
+                evs_score=evs_score,
+                ise_score=ise_score,
+                k1_score=k1_score,
+                model_param=self.model_params,
+                seed=self.seed,
+            )
 
     def log_target(
         self,

@@ -3,16 +3,11 @@ import torch
 import torch.nn as nn
 import os
 
-from sklearn.metrics import (
-    r2_score,
-)
 from sklearn.mixture import GaussianMixture
 import argparse
 
-# main.py
 import lightning as L
 from sklearn.mixture import GaussianMixture
-from sklearn.metrics import r2_score
 
 
 # ---
@@ -23,6 +18,58 @@ from utils.utils import set_seed, check_base_dir, generate_unique_id
 from utils.summary import Summary
 from model.lightning_model import LitModularNN, MetricTracker
 from utils.data_manager import PDF
+
+
+def take_official_name(name: list = ""):
+    name = name.lower()
+    name = name.replace("  ", " ")
+
+    official_model_name = ""
+    official_target_name = ""
+
+    pnn_allow_name: list = [
+        "parzen window neural netowrk",
+        "parzen windows neural netowrk",
+        "pnn",
+        "parzen window + nn",
+        "parzen windows + nn",
+    ]
+
+    gnn_allow_name: list = [
+        "gaussian mixture neural network",
+        "gnn",
+        "gaussian mixture + nn",
+        "gmm + nn",
+        "gmm+nn",
+    ]
+
+    parzen_allow_name: list = ["parzen window", "parzen windows", "parzen base"]
+
+    gmm_allow_name: list = ["gmm", "gaussian mixture", "gaussian mixture model"]
+
+    knn_allow_name: list = ["knn", "k nearest neighbors"]
+
+    if name in pnn_allow_name:
+        official_model_name = "PNN"
+        official_target_name = "PARZEN"
+
+    elif name in gnn_allow_name:
+        official_model_name = "GNN"
+        official_target_name = "GMM"
+
+    elif name in gmm_allow_name:
+        official_model_name = "GMM"
+
+    elif name in knn_allow_name:
+        official_model_name = "KNN"
+
+    elif name in parzen_allow_name:
+        official_model_name = "Parzen Window"
+
+    else:
+        print("model name not found")
+
+    return official_model_name, official_target_name
 
 
 def arg_parsing():
@@ -53,14 +100,20 @@ if __name__ == "__main__":
 
     args = arg_parsing()
 
-    # select model type from "GMM" "MLP" "Parzen Window" "KNN" "Parzen Window + NN" "GMM + NN"
-    model_type = "Parzen Window"
+    # select model type from "GMM" "Parzen Window" "KNN" "PNN" "GNN"
+    model_type = "PNN"
+
+    model_type, target_type = take_official_name(model_type)
 
     dataset_params = {
         "n_samples": args.samples,
         "seed": 60,
-        "target_type": "GMM" if model_type == "GMM + NN" else "PARZEN",
+        "target_type": target_type,
+        "validation_size": 0,
+        "test_range_limit": (0, 5),
     }
+
+    # ------- Statistic Model Params -------
 
     gm_model_params = {
         "n_components": 4,
@@ -72,9 +125,9 @@ if __name__ == "__main__":
 
     knn_model_params = {"k1": 1.0494451711015031, "kn": 23}
 
-    parzen_window_params = {"h": 0.1000015563586018}  # trovato con optuna
+    parzen_window_params = {"h": 0.1018868018526368}
 
-    # --- MLP PARAMS --------
+    # ------ MLP PARAMS --------
     mlp_params = {
         "dropout": 0.000,
         "hidden_layer": [(22, nn.Tanh()), (24, nn.ReLU()), (60, nn.ReLU())],
@@ -82,10 +135,10 @@ if __name__ == "__main__":
     }
 
     train_params = {
-        "epochs": 980,
+        "epochs": 380,
         "batch_size": 2,
-        "loss_type": "huber_loss",
-        "optimizer": "RMSprop",
+        "loss_type": "huber_loss",  # "huber_loss" or "mse_loss"
+        "optimizer": "RMSprop",  # "RMSprop" or "Adam"
         "learning_rate": 0.00660307851,
     }
 
@@ -93,7 +146,7 @@ if __name__ == "__main__":
         "n_components": 10,
         "n_init": 100,
         "max_iter": 80,
-        "init_params": "k-means++",
+        "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
         "random_state": dataset_params["seed"],
     }
 
@@ -101,6 +154,7 @@ if __name__ == "__main__":
 
     set_seed(dataset_params["seed"])
 
+    # choose the pdf for the experiment
     if args.pdf in ["exponential", "exp"]:
         pdf = PDF(
             [
@@ -124,14 +178,12 @@ if __name__ == "__main__":
     else:
         pdf = PDF(default="MULTIVARIATE_1254")
 
-    X_train, Y_train = pdf.generate_training(
-        n_samples=dataset_params["n_samples"], seed=dataset_params["seed"]
-    )
+    pdf.generate_training(n_samples=dataset_params["n_samples"], seed=dataset_params["seed"])
 
     # generate the data for plotting the pdf
-    X_test, Y_test = pdf.generate_test(stepper=0.01)
+    pdf.generate_test(stepper=0.01, range_limit=dataset_params["test_range_limit"])
 
-    X_val, Y_val = pdf.generate_validation(n_samples=50)
+    pdf.generate_validation(n_samples=dataset_params["validation_size"])
 
     target_y = None
     target_params = None
@@ -140,9 +192,9 @@ if __name__ == "__main__":
     val_score = None
     model_params: dict = {}
 
-    # --------------------------------------------------------------------
+    # --------------------------------- MLP -------------------------------------
 
-    if model_type in ["MLP", "GMM + NN", "Parzen Window + NN", "PNN", "GNN"]:
+    if model_type in ["GNN", "PNN"]:
         print("Training Neural Network")
         model_params = mlp_params
 
@@ -152,6 +204,7 @@ if __name__ == "__main__":
         base_dir = check_base_dir(base_dir)
 
         if dataset_params["target_type"] == "GMM":
+            print("Using GMM Target")
             # generate the id
             target_unique_id = generate_unique_id(
                 [pdf.training_X, pdf.test_Y, args.bias, gmm_target_params, dataset_params["seed"]], 5
@@ -178,7 +231,7 @@ if __name__ == "__main__":
             target_params = gmm_target_params
 
         elif dataset_params["target_type"] == "PARZEN":
-
+            print("Using PARZEN Target")
             parzen_model = ParzenWindow_Model(**pw_target_params)
 
             _, target_y = gen_target_with_parzen_parallel(
@@ -194,11 +247,11 @@ if __name__ == "__main__":
         X_train = torch.tensor(pdf.training_X, dtype=torch.float32)
         Y_train = torch.tensor(pdf.training_Y, dtype=torch.float32)
 
-        X_test = torch.tensor(X_test, dtype=torch.float32)
-        Y_test = torch.tensor(Y_test, dtype=torch.float32)
+        X_test = torch.tensor(pdf.test_X, dtype=torch.float32)
+        Y_test = torch.tensor(pdf.test_Y, dtype=torch.float32)
 
-        X_val = torch.tensor(X_val, dtype=torch.float32)
-        Y_val = torch.tensor(Y_val, dtype=torch.float32)
+        X_val = torch.tensor(pdf.validation_X, dtype=torch.float32)
+        Y_val = torch.tensor(pdf.validation_Y, dtype=torch.float32)
 
         xy_train = torch.cat((X_train, target_y), 1)
         xy_test = torch.cat((X_test, Y_test), 1)
@@ -232,44 +285,36 @@ if __name__ == "__main__":
         with torch.no_grad():
             pdf_predicted = model(X_test)
             pdf_predicted = pdf_predicted.detach().numpy()
-            r2_value = r2_score(Y_test, pdf_predicted)
 
-        X_train = X_train.detach().numpy()
-        Y_train = Y_train.detach().numpy()
-        Y_test = Y_test.detach().numpy()
-        X_test = X_test.detach().numpy()
+        # X_train = X_train.detach().numpy()
+        # Y_train = Y_train.detach().numpy()
+        # Y_test = Y_test.detach().numpy()
+        # X_test = X_test.detach().numpy()
         target_y = target_y.detach().numpy()
 
-    # ----------------------------------------------------------------------
-    elif model_type in ["Parzen Window", "PARZEN", "parzen"]:
+    # --------------------------------- PARZEN WINDOW -------------------------------------
+    elif model_type == "Parzen Window":
         model_params = parzen_window_params
         model = ParzenWindow_Model(h=parzen_window_params["h"])
-        model.fit(training=X_train)
-        pdf_predicted = model.predict(test=X_test)
+        model.fit(training=pdf.training_X)
+        pdf_predicted = model.predict(test=pdf.test_X)
 
-        r2_value = r2_score(Y_test, pdf_predicted)
-
-    # ----------------------------------------------------------------------
+    # --------------------------------- GMM -------------------------------------
     elif model_type == "GMM":
         model_params = gm_model_params
         model = GaussianMixture(**gm_model_params)
-        model.fit(X_train, Y_train)
-
+        model.fit(pdf.training_X, pdf.training_Y)
         # predict the pdf with GMM
-        pdf_predicted = np.exp(model.score_samples(X_test))
+        pdf_predicted = np.exp(model.score_samples(pdf.test_X))
 
-        r2_value = r2_score(Y_test, pdf_predicted)
-
-    # ----------------------------------------------------------------------
+    # --------------------------------- KNN -------------------------------------
     elif model_type == "KNN":
         model_params = knn_model_params
         model = KNN_Model(**knn_model_params)
         model.fit(pdf.training_X)
-
         pdf_predicted = model.predict(pdf.test_X)
 
-        r2_value = r2_score(pdf.test_Y, pdf_predicted)
-
+    # ----------------------------- SUMMARY -----------------------------
     # Creo l'oggetto che mi gestirà il salvataggio dell'esperimento e gli passo tutti i parametri
     experiment_name = f"Experiment "
 
@@ -298,9 +343,10 @@ if __name__ == "__main__":
     summary.log_target()
     summary.log_model(model=model)
     summary.log_train_params()
-    summary.leaderboard()
+    summary.scoreboard()
 
+    print("*******************************")
     print("ID EXPERIMENT:", summary.id_experiment)
-    print("R2 score: ", r2_value)
+    print("R2 score: ", summary.model_metrics.get("r2"))
     print("KL divergence: ", summary.model_metrics.get("kl"))
     print("Done!")

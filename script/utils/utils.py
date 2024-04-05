@@ -292,21 +292,21 @@ def write_csv(
     # generate timestamp
     date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    if head is None:
+        head = [key.replace("_", " ").title() for key in kwargs.keys()]
+
     if autodate:
         log_entry = [date]
         log_title = ["Date", *head]
     else:
         log_entry = []
-        log_title = [*head]
+        log_title = head
 
     for key, element in kwargs.items():
         if element is None:
             log_entry.append("")
         else:
             log_entry.append(str(element))
-
-        if head is None:
-            log_title.append(key.replace("_", " ").title())
 
     # check if file exist
     if not os.path.isfile(full_path):

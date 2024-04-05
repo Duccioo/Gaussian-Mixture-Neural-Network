@@ -38,19 +38,25 @@ def start_optuna_mlp():
         "h": (0.001, 1),
         # DATASET PARAMS:
         "dataset_type": "exp",  # multivariate or exp
-        "n_samples": 100,
+        "n_samples": 50,
         "seed": 42,
-        "target_type": "PARZEN",
+        "target_type": "GMM",  # GMM or PARZEN
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"{params['dataset_type']} {params['target_type']} MLP {params['n_samples']} fixed 42 seed (1)"  # Unique identifier of the study.
-    storage_name = f"sqlite:///optuna-{params['n_samples']} .db"
+    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']}"  # Unique identifier of the study.
+    if not isinstance(params["seed"], (list, tuple)):
+        study_name += f"fixed {params['seed']} seed"
+    db_folder = "optuna_databse"
+    storage_name = f"db02-MLP_{params['n_samples']}_{params['dataset_type']} .db"
+
+    storage_path = os.path.join(db_folder, storage_name)
+    storage_path = f"sqlite://{storage_path}"
 
     study = optuna.create_study(
         study_name=study_name,
-        storage=storage_name,
+        storage=storage_path,
         direction="maximize",
         load_if_exists=True,
     )

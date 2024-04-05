@@ -1,0 +1,2 @@
+Id,Date,Pdf Type,Model Type,R2 Score,Dimension,Max Error Score,Mse Score,Evs Score,Ise Score,K1 Score,Model Param,Seed
+36109ad5,2024-04-05 17-30,exponential 0.6,KNN,0.7344,1,1.9183,0.0342,0.7353,840.9228,1.1245,"{'k1': 1.0494451711015031, 'kn': 23}",60

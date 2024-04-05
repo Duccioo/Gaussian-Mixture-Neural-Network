@@ -149,3 +149,8 @@ and 10), just focus on the final model MLP + GMM."
 - Segnarsi gli esperimenti più interessanti e inviargli al massimo 1/2 immagini al prof ogni volta che c'è qualcosa
 
 - fare l'optuna dei parametri della gmm
+
+# Update 4 (marzo 2024):
+- Allora sono 2 le pdf da studiare:
+  - la multivariata
+  - l'esponenziale già fatta nel progettino
