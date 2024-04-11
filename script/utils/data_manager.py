@@ -10,7 +10,12 @@ from .config import MULTIVARIATE_1254, EXPONENTIAL_06
 
 
 def save_dataset(X, file: str = None, base_dir: str = None):
-    if base_dir is not None and os.path.exists(base_dir) and file is not None and not os.path.isfile(file):
+    if (
+        base_dir is not None
+        and os.path.exists(base_dir)
+        and file is not None
+        and not os.path.isfile(file)
+    ):
         file = os.path.join(base_dir, file)
 
     if isinstance(X, tuple) and len(X) > 1:
@@ -24,7 +29,12 @@ def save_dataset(X, file: str = None, base_dir: str = None):
 
 
 def load_dataset(file: str = None, base_dir: str = None):
-    if base_dir is not None and os.path.exists(base_dir) and file is not None and not os.path.isfile(file):
+    if (
+        base_dir is not None
+        and os.path.exists(base_dir)
+        and file is not None
+        and not os.path.isfile(file)
+    ):
         file = os.path.join(base_dir, file)
 
     if file is not None and os.path.isfile(file):
@@ -170,9 +180,15 @@ class PDF:
         if save_filename is not None:
             save_filename_t = save_filename.split(".")[0]
             save_filename_t = save_filename_t + "_" + self.unique_id_training + ".npz"
-            training_X, training_Y = load_dataset(file=save_filename_t, base_dir=base_dir)
+            training_X, training_Y = load_dataset(
+                file=save_filename_t, base_dir=base_dir
+            )
 
-        if save_filename is not None and training_X is not None and training_Y is not None:
+        if (
+            save_filename is not None
+            and training_X is not None
+            and training_Y is not None
+        ):
             self.training_X, self.training_Y = training_X, training_Y
             self.n_samples_training = len(self.training_X)
             return self.training_X, self.training_Y
@@ -193,7 +209,9 @@ class PDF:
             fake_Y = np.zeros((n_samples, len(self.params)))
             for d, params_dim in enumerate(self.params):
                 for i in range(len(samples)):
-                    mode = random_state.choice(len(params_dim), p=[elem["weight"] for elem in params_dim])
+                    mode = random_state.choice(
+                        len(params_dim), p=[elem["weight"] for elem in params_dim]
+                    )
                     sample, fake_Y1 = calculate_pdf(
                         params_dim[mode]["type"],
                         params_dim[mode],
@@ -234,8 +252,12 @@ class PDF:
             filename = os.path.join(self.base_dir, "default", "MULTIVARIATE_1254.txt")
             data_loaded = np.empty((n_samples, 2))
 
+        elif self.default == "EXPONENTIAL_06":
+            filename = os.path.join(self.base_dir, "default", "EXPONENTIAL_06_42.txt")
+            data_loaded = np.empty((n_samples, 2))
+
         with open(filename, "r") as file:
-            print(f"loading dataset from {filename}")
+            # print(f"loading dataset from {filename}")
             lines = file.readlines()
             try:
                 data_loaded = [
@@ -246,7 +268,9 @@ class PDF:
                     for line in lines
                 ][0:n_samples]
             except:
-                print(f"Number of samples requests ({n_samples}) bigger than {self.default} dataset!")
+                print(
+                    f"Number of samples requests ({n_samples}) bigger than {self.default} dataset!"
+                )
 
         self.training_X = np.array(data_loaded)[:, 0].reshape(-1, 1)
         self.training_Y = np.array(data_loaded)[:, 1].reshape(-1, 1)
@@ -304,7 +328,9 @@ class PDF:
                     pdf_type = pdf_info["type"]
                     weight = pdf_info["weight"]
 
-                    _, fake_Y1 = calculate_pdf(pdf_type, pdf_info, weight, X_input=self.test_X[:, d])
+                    _, fake_Y1 = calculate_pdf(
+                        pdf_type, pdf_info, weight, X_input=self.test_X[:, d]
+                    )
                     fake_Y[:, d] += fake_Y1
 
             self.test_Y = fake_Y[:, 0]
@@ -314,7 +340,9 @@ class PDF:
             self.test_Y = self.test_Y.reshape((self.test_Y.shape[0], 1))
 
             if save_filename is not None:
-                save_dataset((self.test_X, self.test_Y), save_filename_t, base_dir=base_dir)
+                save_dataset(
+                    (self.test_X, self.test_Y), save_filename_t, base_dir=base_dir
+                )
             self.n_samples_test = len(self.test_X)
             return self.test_X, self.test_Y
 

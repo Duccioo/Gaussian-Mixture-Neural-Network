@@ -1,2 +1,0 @@
-Id,Date,Pdf Type,Target Type,Target Params,Model Type,R2 Score,Train Epoch,Batch Size,Learning Rate,N Layer,N Neurons,Loss Type,Dimension,Max Error Score,K1 Score,Seed
-c39a4876,2024-04-05 17-32,exponential 0.6,PARZEN,H0.11685252311419939,PNN,0.9533,380,2,0.00660307851,3,106,huber_loss,1,0.4439,0.1123,60

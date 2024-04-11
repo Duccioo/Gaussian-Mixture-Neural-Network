@@ -46,22 +46,29 @@ if __name__ == "__main__":
     # Crea un array NumPy
     samples_array = np.array(samples)
     offset_limit = 0.0
+    # params = [
+    #     [
+    #         {"type": "exponential", "rate": 1, "weight": 0.2},
+    #         {"type": "logistic", "mean": 4, "scale": 0.8, "weight": 0.25},
+    #         {"type": "logistic", "mean": 5.5, "scale": 0.7, "weight": 0.3},
+    #         {"type": "exponential", "mean": -1, "weight": 0.25, "shift": -10},
+    #     ]
+    # ]
+    # pdf = PDF(params)
+
+    # pdf = PDF({"type": "exponential", "mean": -1, "offset": -10})
     params = [
         [
-            {"type": "exponential", "rate": 1, "weight": 0.2},
-            {"type": "logistic", "mean": 4, "scale": 0.8, "weight": 0.25},
-            {"type": "logistic", "mean": 5.5, "scale": 0.7, "weight": 0.3},
-            {"type": "exponential", "mean": -1, "weight": 0.25, "shift": -10},
+            {"type": "exponential", "rate": 0.6},
         ]
     ]
     pdf = PDF(params)
-
-    # pdf = PDF({"type": "exponential", "mean": -1, "offset": -10})
 
     pdf.generate_training(
         n_samples=5000,
         seed=42,
     )
+
     # limit_test = (np.min(pdf.training_X) - offset_limit, np.max(pdf.training_X) + offset_limit)
     limit_test = (0 - offset_limit, 10 + offset_limit)
     pdf.generate_test(range_limit=limit_test, stepper=0.1)
@@ -71,7 +78,7 @@ if __name__ == "__main__":
     nome_file = "dati.txt"
 
     # Apri il file in modalità scrittura
-    with open(nome_file, 'w') as file:
+    with open(nome_file, "w") as file:
         for val1, val2 in zip(trainingX, trainingY):
             # Scrivi un elemento del primo array, uno spazio e un elemento del secondo array
             file.write(f"{val1[0]} {val2[0]}\n")

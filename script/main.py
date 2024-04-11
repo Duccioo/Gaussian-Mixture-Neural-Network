@@ -101,16 +101,16 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     # select model type from "GMM" "Parzen Window" "KNN" "PNN" "GNN"
-    model_type = "PNN"
+    model_type = "Parzen Window"
 
     model_type, target_type = take_official_name(model_type)
 
     dataset_params = {
         "n_samples": args.samples,
-        "seed": 60,
+        "seed": 11,
         "target_type": target_type,
         "validation_size": 0,
-        "test_range_limit": (0, 5),
+        # "test_range_limit": (0, 5),
     }
 
     # ------- Statistic Model Params -------
@@ -125,29 +125,35 @@ if __name__ == "__main__":
 
     knn_model_params = {"k1": 1.0494451711015031, "kn": 23}
 
-    parzen_window_params = {"h": 0.1018868018526368}
+    parzen_window_params = {"h": 0.09795517178517492}
 
     # ------ MLP PARAMS --------
     mlp_params = {
         "dropout": 0.000,
-        "hidden_layer": [(22, nn.Tanh()), (24, nn.ReLU()), (60, nn.ReLU())],
-        "last_activation": "lambda",
+        "hidden_layer": [
+            (56, nn.Tanh()),
+            (64, nn.ReLU()),
+            (58, nn.ReLU()),
+            (20, nn.ReLU()),
+            (16, nn.ReLU()),
+        ],
+        "last_activation": None,  # None or lambda
     }
 
     train_params = {
-        "epochs": 380,
-        "batch_size": 2,
-        "loss_type": "huber_loss",  # "huber_loss" or "mse_loss"
+        "epochs": 270,
+        "batch_size": 8,
+        "loss_type": "mse_loss",  # "huber_loss" or "mse_loss"
         "optimizer": "RMSprop",  # "RMSprop" or "Adam"
-        "learning_rate": 0.00660307851,
+        "learning_rate": 0.00005244946293289557,
     }
 
     gmm_target_params = {
-        "n_components": 10,
-        "n_init": 100,
-        "max_iter": 80,
+        "n_components": 8,
+        "n_init": 70,
+        "max_iter": 20,
         "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
-        "random_state": dataset_params["seed"],
+        "random_state": 3,
     }
 
     pw_target_params = {"h": 0.11685252311419939}
@@ -156,14 +162,7 @@ if __name__ == "__main__":
 
     # choose the pdf for the experiment
     if args.pdf in ["exponential", "exp"]:
-        pdf = PDF(
-            [
-                [
-                    {"type": "exponential", "rate": 0.6},
-                ]
-            ],
-            name="exponential 0.6",
-        )
+        pdf = PDF(default="EXPONENTIAL_06")
     elif args.pdf in ["multimodal logistic", "logistic"]:
         pdf = PDF(
             [
@@ -178,10 +177,12 @@ if __name__ == "__main__":
     else:
         pdf = PDF(default="MULTIVARIATE_1254")
 
-    pdf.generate_training(n_samples=dataset_params["n_samples"], seed=dataset_params["seed"])
+    pdf.generate_training(
+        n_samples=dataset_params["n_samples"], seed=dataset_params["seed"]
+    )
 
     # generate the data for plotting the pdf
-    pdf.generate_test(stepper=0.01, range_limit=dataset_params["test_range_limit"])
+    pdf.generate_test(stepper=0.01)
 
     pdf.generate_validation(n_samples=dataset_params["validation_size"])
 
@@ -207,7 +208,14 @@ if __name__ == "__main__":
             print("Using GMM Target")
             # generate the id
             target_unique_id = generate_unique_id(
-                [pdf.training_X, pdf.test_Y, args.bias, gmm_target_params, dataset_params["seed"]], 5
+                [
+                    pdf.training_X,
+                    pdf.test_Y,
+                    args.bias,
+                    gmm_target_params,
+                    dataset_params["seed"],
+                ],
+                5,
             )
 
             save_filename = f"train_mlp{'_Biased' if args.bias == True else '' }_{gmm_target_params['init_params']}_C{gmm_target_params['n_components']}"
@@ -224,7 +232,7 @@ if __name__ == "__main__":
                 X=pdf.training_X,
                 progress_bar=True,
                 n_jobs=-1,
-                save_filename=f"train_old-{gmm_target_params['n_components']}.npz",
+                save_filename=save_filename,
             )
 
             target_y = torch.tensor(target_y, dtype=torch.float32)
@@ -261,7 +269,7 @@ if __name__ == "__main__":
             xy_train,
             batch_size=train_params["batch_size"],
             shuffle=True,
-            num_workers=7,
+            num_workers=0,
             persistent_workers=True,
         )
 
@@ -274,7 +282,9 @@ if __name__ == "__main__":
 
         model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])
         cb = MetricTracker()
-        trainer = L.Trainer(accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb])
+        trainer = L.Trainer(
+            accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb]
+        )
         trainer.fit(model, train_loader, val_loader)
         train_loss = cb.train_epoch_losses
         val_loss = cb.val_epoch_losses

@@ -14,7 +14,7 @@ from model.optuna_model import objective_MLP_allin_gmm
 
 
 def start_optuna_mlp():
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     params = {
         # TRAIN PARAMS:
@@ -34,29 +34,36 @@ def start_optuna_mlp():
         "init_params_gmm": ("k-means++", "kmeans"),
         "n_init": (10, 100),
         "max_iter": (10, 100),
+        "gmm_seed": (0, 100),
         # PARZEN PARAMS:
         "h": (0.001, 1),
         # DATASET PARAMS:
-        "dataset_type": "exp",  # multivariate or exp
-        "n_samples": 50,
-        "seed": 42,
-        "target_type": "GMM",  # GMM or PARZEN
+        "dataset_type": "multivariate",  # multivariate or exp
+        "n_samples": 100,
+        "seed": 42,  # seed che influisce sul dataset (se è esponenziale) e sui pesi della MLP
+        "target_type": "PARZEN",  # GMM or PARZEN
+        "pruning": True,  # use pruning if True
+        "trials": 500,
+        "save_database": False,  # save study in database
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']}"  # Unique identifier of the study.
+    study_name = (
+        f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']}"
+    )
     if not isinstance(params["seed"], (list, tuple)):
-        study_name += f"fixed {params['seed']} seed"
-    db_folder = "optuna_databse"
-    storage_name = f"db02-MLP_{params['n_samples']}_{params['dataset_type']} .db"
+        study_name += f" fixed {params['seed']} seed"
 
-    storage_path = os.path.join(db_folder, storage_name)
-    storage_path = f"sqlite://{storage_path}"
+    storage_name = f"db02-MLP_{params['n_samples']}_{params['dataset_type']}.db"
+
+    db_folder = "optuna_database"
+    storage_path = db_folder + "/" + storage_name
+    storage_path = f"sqlite:///{storage_path}"
 
     study = optuna.create_study(
         study_name=study_name,
-        storage=storage_path,
+        storage=storage_path if params["save_database"] else None,
         direction="maximize",
         load_if_exists=True,
     )
@@ -67,7 +74,7 @@ def start_optuna_mlp():
 
     study.optimize(
         lambda trial: objective_MLP_allin_gmm(trial, params, tmp_dir.name, device),
-        n_trials=1000,
+        n_trials=params["trials"],
         timeout=None,
         n_jobs=1,
         show_progress_bar=True,

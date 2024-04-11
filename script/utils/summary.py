@@ -23,7 +23,9 @@ def console_bullet_list(console, list_elem: list = []):
             console.print("- ", element)
 
 
-def console_table_list_of_dict(console, list_of_dict: list = [{}], inplace: bool = True):
+def console_table_list_of_dict(
+    console, list_of_dict: list = [{}], inplace: bool = True
+):
     table = Table(show_header=True, header_style="bold magenta", box=box.MARKDOWN)
     for key, value in list_of_dict[0].items():
         table.add_column(key)
@@ -40,7 +42,9 @@ def console_table_list_of_dict(console, list_of_dict: list = [{}], inplace: bool
     return table
 
 
-def console_table_dict(console, dict: dict = {}, header: tuple = ("KEY", "VALUE"), inplace: bool = True):
+def console_table_dict(
+    console, dict: dict = {}, header: tuple = ("KEY", "VALUE"), inplace: bool = True
+):
     table = Table(show_header=True, header_style="bold magenta", box=box.MARKDOWN)
     table.add_column(header[0])
     table.add_column(header[1])
@@ -126,7 +130,15 @@ class Summary:
 
         self.model_params = model_params
 
-        if model_type in ["Parzen Windows", "Parzen Window", "GMM", "KNN", "Parzen", "PARZEN", "parzen"]:
+        if model_type in [
+            "Parzen Windows",
+            "Parzen Window",
+            "GMM",
+            "KNN",
+            "Parzen",
+            "PARZEN",
+            "parzen",
+        ]:
             self.target_params = None
             self.train_params = None
             self.target_type = None
@@ -158,10 +170,14 @@ class Summary:
         self.base_dir = check_base_dir(BASE_RESULT_DIR)
         path_subtype = check_base_dir(BASE_RESULT_DIR, model_type)
         if overwrite:
-            self.experiment_dir = check_base_dir(path_subtype, self.id_experiment + " " + experiment)
+            self.experiment_dir = check_base_dir(
+                path_subtype, self.id_experiment + " " + experiment
+            )
         else:
             self.experiment_dir = check_base_dir(
-                unique_dir(os.path.join(path_subtype, self.id_experiment + " " + experiment))
+                unique_dir(
+                    os.path.join(path_subtype, self.id_experiment + " " + experiment)
+                )
             )
 
         self.filename_summary_md_path = os.path.join(
@@ -220,9 +236,7 @@ class Summary:
             learning_rate = self.train_params["learning_rate"]
 
             if self.target_type == "GMM":
-                target_params_specific = (
-                    f"{self.target_params['init_params']} C{self.target_params['n_components']} "
-                )
+                target_params_specific = f"{self.target_params['init_params']} C{self.target_params['n_components']} "
             elif self.target_type == "PARZEN":
                 target_params_specific = f"H{self.target_params['h']}"
 
@@ -283,8 +297,8 @@ class Summary:
         # scrivo nel file solo se è una MLP
         if self.model_type in ["GNN", "PNN"]:
 
-            file_name = file.strip(".csv")
-            file_name += f"_MLP_{self.n_samples}.csv"
+            file_name = file.split(".csv")[0]
+            file_name += f"_MLP_{self.pdf.n_samples_training}.csv"
             write_csv(
                 log_name_file=file_name,
                 base_dir=base_dir,
@@ -308,8 +322,8 @@ class Summary:
                 seed=self.seed,
             )
         else:
-            file_name = file.strip(".csv")
-            file_name += f"_statistics_{self.n_samples}.csv"
+            file_name = file.split(".csv")[0]
+            file_name += f"_statistics_{self.pdf.n_samples_training}.csv"
             write_csv(
                 log_name_file=file_name,
                 base_dir=base_dir,
@@ -349,7 +363,9 @@ class Summary:
                         console.print("")
 
         except:
-            print("error in log_target, trying to log target but no target was provided")
+            print(
+                "error in log_target, trying to log target but no target was provided"
+            )
 
     def log_train_params(self):
 
@@ -358,7 +374,9 @@ class Summary:
             if self.train_params != None:
                 console = Console(file=file)
                 console.print("## Training")
-                console.print(f"<details><summary>All Params used for the training </summary>\n")
+                console.print(
+                    f"<details><summary>All Params used for the training </summary>\n"
+                )
                 console_table_dict(console, self.train_params)
                 console.print("</details>")
                 console.print("")
@@ -371,7 +389,9 @@ class Summary:
             console.print(f"#### Model Params:")
 
             if self.model_params.items():
-                console.print(f"<details><summary>All Params used in the model </summary>\n")
+                console.print(
+                    f"<details><summary>All Params used in the model </summary>\n"
+                )
                 console_table_dict(console, self.model_params)
                 console.print("</details>")
                 console.print("")
@@ -541,7 +561,9 @@ class Summary:
             if isinstance(value, int) or isinstance(value, str):
                 console.print(f"#### {key} :\n - {str(value)}")
                 if key == "smiles":
-                    mol_filepath = os.path.join(self.directory_base, "example_molecule.png")
+                    mol_filepath = os.path.join(
+                        self.directory_base, "example_molecule.png"
+                    )
                     console.print("\n<img src='example_molecule.png'>")
 
             else:
@@ -560,9 +582,13 @@ if __name__ == "__main__":
         table.add_column("Released", justify="center", style="cyan", no_wrap=True)
         table.add_column("Title", justify="center", style="magenta")
 
-        table.add_row("Dec 20, 2019", "Star Wars: The Rise of Skywalker", "$952,110,690")
+        table.add_row(
+            "Dec 20, 2019", "Star Wars: The Rise of Skywalker", "$952,110,690"
+        )
         table.add_row("May 25, 2018", "Solo: A Star Wars Story", "$393,151,347")
-        table.add_row("Dec 15, 2017", "Star Wars Ep. V111: The Last Jedi", "$1,332,539,889")
+        table.add_row(
+            "Dec 15, 2017", "Star Wars Ep. V111: The Last Jedi", "$1,332,539,889"
+        )
         for i in range(3):
             table.add_row("Dec 16, 2016", "Rogue One: A Star Wars Story", f"{i*100}")
 
