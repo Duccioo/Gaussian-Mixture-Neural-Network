@@ -6,14 +6,14 @@ import math
 @define(slots=True)
 class KNN_Model:
     k1: float = field(default=0.0, init=True)
-    kn: float = field(default=0.0, init=True)
+    kn: int = field(default=0, init=True)
     training: np.ndarray = field(init=True, default=np.array(None))
 
     def fit(self, training: np.ndarray):
         _kn = int(self.k1 * np.sqrt(len(training)))
 
-        if _kn > len(training):
-            self.kn = self.k1
+        if _kn >= len(training):
+            self.kn = int(self.k1)
             print(
                 f"kn ({_kn}) is too large to fit in the training set ({len(training)})\nSetting kn = {self.kn}"
             )
@@ -23,11 +23,15 @@ class KNN_Model:
         self.training = training.ravel()
 
     def predict(self, test: np.ndarray):
-        pdf_predicted_knn = [self.kn_nn_estimation(self.training, point, self.kn) for point in test]
+        pdf_predicted_knn = [
+            self.kn_nn_estimation(self.training, point, self.kn) for point in test
+        ]
         return pdf_predicted_knn
 
     @staticmethod
-    def kn_nn_estimation(data: np.ndarray, point: float = 0.0, kn: float = 1.0) -> float:
+    def kn_nn_estimation(
+        data: np.ndarray, point: float = 0.0, kn: float = 1.0
+    ) -> float:
         n = len(data)
         distances = np.abs(data - point)
         sorted_distances = np.sort(distances)
