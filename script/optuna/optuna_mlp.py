@@ -30,7 +30,7 @@ def start_optuna_mlp():
         "suggest_activation": ("relu", "tanh", "sigmoid"),
         "suggest_last_activation": ("lambda", None),
         # GMM PARAMS:
-        "n_components": (2, 15),
+        "n_components": (2, 40),
         "init_params_gmm": ("k-means++", "kmeans"),
         "n_init": (10, 100),
         "max_iter": (10, 100),
@@ -38,13 +38,14 @@ def start_optuna_mlp():
         # PARZEN PARAMS:
         "h": (0.001, 1),
         # DATASET PARAMS:
-        "dataset_type": "multivariate",  # multivariate or exp
+        "dataset_type": "exp",  # multivariate or exp
         "n_samples": 100,
-        "seed": 42,  # seed che influisce sul dataset (se è esponenziale) e sui pesi della MLP
-        "target_type": "PARZEN",  # GMM or PARZEN
+        # -- seed che influisce sui pesi della MLP
+        "seed": (0, 100),
+        "target_type": "GMM",  # GMM or PARZEN
         "pruning": True,  # use pruning if True
         "trials": 500,
-        "save_database": False,  # save study in database
+        "save_database": True,  # save study in database
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))

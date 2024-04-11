@@ -207,7 +207,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
     if params["dataset_type"] == "multivariate":
         pdf = PDF(default="MULTIVARIATE_1254")
     else:
-        pdf = PDF([[{"type": "exponential", "rate": 0.6}]], name="exponential 0.6")
+        pdf = PDF(default="EXPONENTIAL_06")
     bias = False
     stepper_x_test = 0.01  # genero con la multivariate circa 1000 esempi
 
@@ -225,7 +225,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
     else:
         n_samples = params["n_samples"]
 
-    x_training, _ = pdf.generate_training(n_samples=n_samples, seed=seed)
+    x_training, _ = pdf.generate_training(n_samples=n_samples)
 
     # generate the data for plotting the pdf
     x_test, y_test = pdf.generate_test(stepper=stepper_x_test)
