@@ -101,13 +101,13 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     # select model type from "GMM" "Parzen Window" "KNN" "PNN" "GNN"
-    model_type = "Parzen Window"
+    model_type = "knn"
 
     model_type, target_type = take_official_name(model_type)
 
     dataset_params = {
         "n_samples": args.samples,
-        "seed": 11,
+        "seed": 55,
         "target_type": target_type,
         "validation_size": 0,
         # "test_range_limit": (0, 5),
@@ -117,15 +117,15 @@ if __name__ == "__main__":
 
     gm_model_params = {
         "n_components": 4,
-        "n_init": 11,
-        "max_iter": 684,
+        "n_init": 60,
+        "max_iter": 70,
         "init_params": "kmeans",
         "random_state": dataset_params["seed"],
     }
 
-    knn_model_params = {"k1": 1.0494451711015031, "kn": 23}
+    knn_model_params = {"k1": 7.255122108569863, "kn": 23}
 
-    parzen_window_params = {"h": 0.09795517178517492}
+    parzen_window_params = {"h": 0.53249163817731}
 
     # ------ MLP PARAMS --------
     mlp_params = {
@@ -177,9 +177,7 @@ if __name__ == "__main__":
     else:
         pdf = PDF(default="MULTIVARIATE_1254")
 
-    pdf.generate_training(
-        n_samples=dataset_params["n_samples"], seed=dataset_params["seed"]
-    )
+    pdf.generate_training(n_samples=dataset_params["n_samples"], seed=dataset_params["seed"])
 
     # generate the data for plotting the pdf
     pdf.generate_test(stepper=0.01)
@@ -282,9 +280,7 @@ if __name__ == "__main__":
 
         model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])
         cb = MetricTracker()
-        trainer = L.Trainer(
-            accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb]
-        )
+        trainer = L.Trainer(accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb])
         trainer.fit(model, train_loader, val_loader)
         train_loss = cb.train_epoch_losses
         val_loss = cb.val_epoch_losses

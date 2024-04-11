@@ -1,2 +1,10 @@
 Id,Date,Pdf Type,Model Type,R2 Score,Dimension,Max Error Score,Mse Score,Evs Score,Ise Score,K1 Score,Model Param,Seed
 2cbba8d0,2024-04-05 17-24,exponential 0.6,KNN,0.7302,1,1.9915,0.0347,0.7311,829.5135,1.1245,"{'k1': 1.0494451711015031, 'kn': 23}",60
+14e5255f,2024-04-12 00-26,EXPONENTIAL_06,Parzen Window,0.9296,1,0.7746,0.0113,0.9339,314.4611,0.702,{'h': 0.13769091718282794},42
+b0a7cdee,2024-04-12 00-27,EXPONENTIAL_06,GMM,0.7069,1,1.0329,0.0468,0.7071,413.7454,0.702,"{'n_components': 31, 'n_init': 30, 'max_iter': 30, 'init_params': 'random', 'random_state': 49}",49
+0bcb8e84,2024-04-12 00-27,EXPONENTIAL_06,GMM,0.7645,1,1.0493,0.0376,0.7647,395.0874,0.702,"{'n_components': 31, 'n_init': 30, 'max_iter': 10, 'init_params': 'random', 'random_state': 49}",49
+96c634e9,2024-04-12 00-27,EXPONENTIAL_06,GMM,0.7551,1,1.0451,0.0391,0.7553,397.3191,0.702,"{'n_components': 31, 'n_init': 50, 'max_iter': 10, 'init_params': 'random', 'random_state': 49}",49
+2ca67592,2024-04-12 00-28,EXPONENTIAL_06,KNN,0.9078,1,0.7351,0.0147,0.9271,316.2619,0.702,"{'k1': 3.291443562872368, 'kn': 23}",49
+a2867d5d,2024-04-12 00-32,MULTIVARIATE_1254,Parzen Window,0.6615,1,0.1014,0.001,0.662,52.5236,0.1576,{'h': 0.53249163817731},49
+9ca0be22,2024-04-12 00-34,MULTIVARIATE_1254,GMM,0.072,1,0.2248,0.0026,0.0913,82.3759,0.1576,"{'n_components': 4, 'n_init': 60, 'max_iter': 70, 'init_params': 'kmeans', 'random_state': 55}",55
+cdddfb13,2024-04-12 00-34,MULTIVARIATE_1254,KNN,0.4752,1,0.1541,0.0015,0.5261,64.3591,0.1576,"{'k1': 7.255122108569863, 'kn': 23}",55

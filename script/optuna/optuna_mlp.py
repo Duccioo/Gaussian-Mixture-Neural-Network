@@ -14,7 +14,7 @@ from model.optuna_model import objective_MLP_allin_gmm
 
 
 def start_optuna_mlp():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
 
     params = {
         # TRAIN PARAMS:
@@ -42,17 +42,15 @@ def start_optuna_mlp():
         "n_samples": 100,
         # -- seed che influisce sui pesi della MLP
         "seed": (0, 100),
-        "target_type": "GMM",  # GMM or PARZEN
-        "pruning": True,  # use pruning if True
+        "target_type": "PARZEN",  # GMM or PARZEN
+        "pruning": False,  # use pruning if True
         "trials": 500,
         "save_database": True,  # save study in database
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = (
-        f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']}"
-    )
+    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning)"
     if not isinstance(params["seed"], (list, tuple)):
         study_name += f" fixed {params['seed']} seed"
 
