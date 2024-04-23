@@ -101,15 +101,15 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     # select model type from "GMM" "Parzen Window" "KNN" "PNN" "GNN"
-    model_type = "knn"
+    model_type = "gnn"
 
     model_type, target_type = take_official_name(model_type)
 
     dataset_params = {
         "n_samples": args.samples,
-        "seed": 55,
+        "seed": 42,
         "target_type": target_type,
-        "validation_size": 0,
+        "validation_size": 50,
         # "test_range_limit": (0, 5),
     }
 
@@ -117,46 +117,42 @@ if __name__ == "__main__":
 
     gm_model_params = {
         "n_components": 4,
-        "n_init": 60,
-        "max_iter": 70,
-        "init_params": "kmeans",
+        "n_init": 100,
+        "max_iter": 100,
+        "init_params": "random",
         "random_state": dataset_params["seed"],
     }
 
-    knn_model_params = {"k1": 7.255122108569863, "kn": 23}
+    knn_model_params = {"k1": 3.1153372021501275, "kn": 23}
 
-    parzen_window_params = {"h": 0.53249163817731}
+    parzen_window_params = {"h": 0.1115631857896388}
 
     # ------ MLP PARAMS --------
     mlp_params = {
         "dropout": 0.000,
         "hidden_layer": [
-            (56, nn.Tanh()),
-            (64, nn.ReLU()),
-            (58, nn.ReLU()),
-            (20, nn.ReLU()),
-            (16, nn.ReLU()),
+            (14, nn.Tanh()),
         ],
-        "last_activation": None,  # None or lambda
+        "last_activation": "lambda",  # None or lambda
     }
 
     train_params = {
-        "epochs": 270,
-        "batch_size": 8,
+        "epochs": 950,
+        "batch_size": 76,
         "loss_type": "mse_loss",  # "huber_loss" or "mse_loss"
         "optimizer": "RMSprop",  # "RMSprop" or "Adam"
-        "learning_rate": 0.00005244946293289557,
+        "learning_rate": 0.0025185,
     }
 
     gmm_target_params = {
-        "n_components": 8,
+        "n_components": 13,
         "n_init": 70,
-        "max_iter": 20,
-        "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
-        "random_state": 3,
+        "max_iter": 80,
+        "init_params": "kmeans",  # "k-means++" or "random" or "kmeans" or "random_from_data"
+        "random_state": 15,
     }
 
-    pw_target_params = {"h": 0.11685252311419939}
+    pw_target_params = {"h": 0.05856210430161586}
 
     set_seed(dataset_params["seed"])
 
@@ -267,15 +263,15 @@ if __name__ == "__main__":
             xy_train,
             batch_size=train_params["batch_size"],
             shuffle=True,
-            num_workers=0,
-            persistent_workers=True,
+            # num_workers=,
+            # persistent_workers=True,
         )
 
         val_loader = torch.utils.data.DataLoader(
             xy_val,
             batch_size=train_params["batch_size"],
             shuffle=False,
-            num_workers=0,
+            # num_workers=0,
         )
 
         model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])

@@ -1,0 +1,6 @@
+Id,Date,Pdf Type,Model Type,R2 Score,Dimension,Max Error Score,Mse Score,Evs Score,Ise Score,K1 Score,Model Param,Seed
+0319dd0d,2024-04-12 10-39,EXPONENTIAL_06,KNN,0.5696,1,1.1681,0.0688,0.5791,215.9923,0.702,"{'k1': 7.255122108569863, 'kn': 23}",55
+2bc875cd,2024-04-12 10-39,EXPONENTIAL_06,Parzen Window,0.9247,1,0.8547,0.012,0.9263,300.9994,0.702,{'h': 0.1115631857896388},55
+ff1ae4e8,2024-04-12 10-39,EXPONENTIAL_06,KNN,0.9138,1,0.801,0.0138,0.9219,314.8277,0.702,"{'k1': 3.1153372021501275, 'kn': 23}",55
+2268c200,2024-04-12 10-40,EXPONENTIAL_06,GMM,0.8478,1,1.138,0.0243,0.8479,343.1503,0.702,"{'n_components': 26, 'n_init': 20, 'max_iter': 10, 'init_params': 'random', 'random_state': 77}",77
+60f8ea65,2024-04-12 11-11,EXPONENTIAL_06,GMM,0.7827,1,1.1339,0.0347,0.7827,362.1963,0.702,"{'n_components': 4, 'n_init': 100, 'max_iter': 100, 'init_params': 'random', 'random_state': 42}",42
