@@ -43,7 +43,7 @@ def take_official_name(name: list = ""):
         "gmm+nn",
     ]
 
-    parzen_allow_name: list = ["parzen window", "parzen windows", "parzen base"]
+    parzen_allow_name: list = ["parzen window", "parzen windows", "parzen base", "parzen"]
 
     gmm_allow_name: list = ["gmm", "gaussian mixture", "gaussian mixture model"]
 
@@ -107,54 +107,54 @@ if __name__ == "__main__":
 
     dataset_params = {
         "n_samples": args.samples,
-        "seed": 42,
+        "seed": 75,
         "target_type": target_type,
-        "validation_size": 50,
+        "validation_size": 0,
         # "test_range_limit": (0, 5),
     }
 
     # ------- Statistic Model Params -------
 
     gm_model_params = {
-        "n_components": 4,
-        "n_init": 100,
-        "max_iter": 100,
-        "init_params": "random",
-        "random_state": dataset_params["seed"],
+        "n_components": 15,
+        "n_init": 60,
+        "max_iter": 90,
+        "init_params": "random_from_data",
+        "random_state": 40,
     }
 
-    knn_model_params = {"k1": 3.1153372021501275, "kn": 23}
+    knn_model_params = {"k1": 1.5005508828032745, "kn": 23}
 
-    parzen_window_params = {"h": 0.1115631857896388}
+    parzen_window_params = {"h": 0.28293348425061676}
 
     # ------ MLP PARAMS --------
     mlp_params = {
         "dropout": 0.000,
         "hidden_layer": [
-            (14, nn.Tanh()),
+            (60, nn.ReLU()),
+            (30, nn.ReLU()),
+            (44, nn.Tanh()),
         ],
-        "last_activation": "lambda",  # None or lambda
+        "last_activation": None,  # None or lambda
     }
 
     train_params = {
-        "epochs": 950,
-        "batch_size": 76,
+        "epochs": 540,
+        "batch_size": 40,
         "loss_type": "mse_loss",  # "huber_loss" or "mse_loss"
         "optimizer": "RMSprop",  # "RMSprop" or "Adam"
-        "learning_rate": 0.0025185,
+        "learning_rate": 0.0009981718351141132,
     }
 
     gmm_target_params = {
-        "n_components": 13,
-        "n_init": 70,
+        "n_components": 10,
+        "n_init": 100,
         "max_iter": 80,
-        "init_params": "kmeans",  # "k-means++" or "random" or "kmeans" or "random_from_data"
-        "random_state": 15,
+        "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
+        "random_state": 96,
     }
 
     pw_target_params = {"h": 0.05856210430161586}
-
-    set_seed(dataset_params["seed"])
 
     # choose the pdf for the experiment
     if args.pdf in ["exponential", "exp"]:
@@ -173,7 +173,9 @@ if __name__ == "__main__":
     else:
         pdf = PDF(default="MULTIVARIATE_1254")
 
-    pdf.generate_training(n_samples=dataset_params["n_samples"], seed=dataset_params["seed"])
+    pdf.generate_training(
+        n_samples=dataset_params["n_samples"] + dataset_params["validation_size"], seed=dataset_params["seed"]
+    )
 
     # generate the data for plotting the pdf
     pdf.generate_test(stepper=0.01)
@@ -190,6 +192,7 @@ if __name__ == "__main__":
     # --------------------------------- MLP -------------------------------------
 
     if model_type in ["GNN", "PNN"]:
+        set_seed(dataset_params["seed"])
         print("Training Neural Network")
         model_params = mlp_params
 
@@ -339,16 +342,15 @@ if __name__ == "__main__":
     )
 
     summary.calculate_metrics(pdf.training_Y, pdf.test_Y, pdf_predicted, target_y)
-    summary.plot_pdf(pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted)
+    print("*******************************")
+    print("ID EXPERIMENT:", summary.id_experiment)
+    print("R2 score: ", summary.model_metrics.get("r2"))
+    print("KL divergence: ", summary.model_metrics.get("kl"))
+    print("Done!")
+    summary.plot_pdf(pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show)
     summary.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
     summary.log_dataset()
     summary.log_target()
     summary.log_model(model=model)
     summary.log_train_params()
     summary.scoreboard()
-
-    print("*******************************")
-    print("ID EXPERIMENT:", summary.id_experiment)
-    print("R2 score: ", summary.model_metrics.get("r2"))
-    print("KL divergence: ", summary.model_metrics.get("kl"))
-    print("Done!")

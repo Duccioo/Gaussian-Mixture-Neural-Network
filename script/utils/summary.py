@@ -431,7 +431,7 @@ class Summary:
 
         ax.hist(
             X_train,
-            bins=bins,
+            bins=32,
             density=density,
             alpha=0.5,
             label="Data",

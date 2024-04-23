@@ -1,0 +1,3 @@
+Id,Date,Pdf Type,Target Type,Target Params,Model Type,R2 Score,Train Epoch,Batch Size,Learning Rate,N Layer,N Neurons,Loss Type,Dimension,Max Error Score,K1 Score,Seed
+f110a117,2024-04-23 14-37,EXPONENTIAL_06,GMM,random C24 ,GNN,0.9364,610,58,0.0030987653108978165,1,58,mse_loss,1,0.1978,0.1731,73
+0f31e799,2024-04-23 14-38,EXPONENTIAL_06,GMM,random C24 ,GNN,0.9364,610,58,0.0030987653108978165,1,58,mse_loss,1,0.1978,0.1731,73

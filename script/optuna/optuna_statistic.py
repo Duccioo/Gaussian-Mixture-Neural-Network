@@ -223,7 +223,7 @@ if __name__ == "__main__":
         # OBJECTIVE
         "objective_name": args.objective,  # knn, gmm, parzen
         "n_trials": args.trials,
-        "save_database": True,  # save the optuna database
+        "save_database": False,  # save the optuna database
     }
 
     # optuna.logging.get_logger("optuna")

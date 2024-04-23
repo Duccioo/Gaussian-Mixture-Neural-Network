@@ -31,15 +31,15 @@ def start_optuna_mlp():
         "suggest_last_activation": ("lambda", None),
         # GMM PARAMS:
         "n_components": (2, 40),
-        "init_params_gmm": ("k-means++", "kmeans"),
+        "init_params_gmm": ("k-means++", "kmeans", "random", "random_from_data"),
         "n_init": (10, 100),
         "max_iter": (10, 100),
         "gmm_seed": (0, 100),
         # PARZEN PARAMS:
         "h": (0.001, 1),
         # DATASET PARAMS:
-        "dataset_type": "multivariate",  # multivariate or exp
-        "n_samples": 100,
+        "dataset_type": "exp",  # multivariate or exp
+        "n_samples": 50,
         "seed": (0, 100),  # seed che influisce sui pesi della MLP
         "target_type": "GMM",  # GMM or PARZEN
         "pruning": False,  # use pruning if True
@@ -49,7 +49,7 @@ def start_optuna_mlp():
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) 1"
+    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) 2"
     if not isinstance(params["seed"], (list, tuple)):
         study_name += f" fixed {params['seed']} seed"
 
