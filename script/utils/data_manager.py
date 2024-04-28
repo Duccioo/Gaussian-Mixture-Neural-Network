@@ -378,6 +378,9 @@ class PDF:
             self.training_X = self.training_X[:n_train]
             self.training_Y = self.training_Y[:n_train]
 
+            print(len(self.training_X))
+            print(len(self.validation_X))
+
             self.n_samples_training -= len(self.validation_X)
             self.n_samples_validation = len(self.validation_X)
 

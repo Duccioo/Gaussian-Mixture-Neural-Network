@@ -209,7 +209,7 @@ if __name__ == "__main__":
         "k1": [0.1, 10],
         "kn": [1, 100],
         # PARZEN
-        "h": [0.01, 1.0],
+        "h": [0.001, 1.0],
         # GMM
         "init_params": ["k-means++", "kmeans", "random", "random_from_data"],
         "n_init": [10, 100],

@@ -38,10 +38,10 @@ def start_optuna_mlp():
         # PARZEN PARAMS:
         "h": (0.001, 1),
         # DATASET PARAMS:
-        "dataset_type": "exp",  # multivariate or exp
+        "dataset_type": "multivariate",  # multivariate or exp
         "n_samples": 50,
         "seed": (0, 100),  # seed che influisce sui pesi della MLP
-        "target_type": "GMM",  # GMM or PARZEN
+        "target_type": "PARZEN",  # GMM or PARZEN
         "pruning": False,  # use pruning if True
         "trials": 300,
         "save_database": True,  # save study in database
