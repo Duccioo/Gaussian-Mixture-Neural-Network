@@ -47,30 +47,35 @@ if __name__ == "__main__":
 
     dataset_params = {
         "n_samples": 100,
-        "seed": 10009,
+        "seed": 98,
         "target_type": "GMM",
         "validation_size": 0,
     }
     mlp_params = {
         "dropout": 0.000,
-        "hidden_layer": [(64, nn.Tanh()), (56, nn.Tanh()), (38, nn.Tanh())],
+        "hidden_layer": [
+            [54, nn.Sigmoid()],
+            (26, nn.Tanh()),
+            (24, nn.Tanh()),
+            (54, nn.ReLU()),
+        ],
         "last_activation": None,  # None or lambda
     }
 
     train_params = {
-        "epochs": 540,
-        "batch_size": 26,
+        "epochs": 360,
+        "batch_size": 40,
         "loss_type": "mse_loss",  # "huber_loss" or "mse_loss"
         "optimizer": "Adam",  # "RMSprop" or "Adam"
-        "learning_rate": 0.000874345,
+        "learning_rate": 0.00266,
     }
 
     gmm_target_params = {
-        "n_components": 10,
-        "n_init": 100,
-        "max_iter": 80,
+        "n_components": 7,
+        "n_init": 10,
+        "max_iter": 30,
         "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
-        "random_state": 10009,
+        "random_state": 62,
     }
 
     device = "cpu"
@@ -114,15 +119,17 @@ if __name__ == "__main__":
     # evaluate model
     metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
 
-    print(metrics["r2"])
-    exit()
+    print(
+        f"R2 di partenza con {gmm_target_params['n_components']} e {mlp_params['hidden_layer'][0][0]}",
+        metrics["r2"],
+    )
 
     # experiement 1:
     # - cambiare il nunmero di componenti GMM, tenendo fermo la rete MLP e vedere comme cambia l'r2 e kl
 
     metrics_changed_1 = []
     start_components = gmm_target_params["n_components"]
-    components = range(1, 8, 2)
+    components = range(1, 20)
 
     for c in components:
 
@@ -155,9 +162,12 @@ if __name__ == "__main__":
         metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
 
         metrics_changed_1.append(metrics)
+        print("--> r2", metrics["r2"], "kl", metrics["kl"])
 
     r2_values = list(map(operator.itemgetter("r2"), metrics_changed_1))
     kl_values = list(map(operator.itemgetter("kl"), metrics_changed_1))
+
+    kl_values = [1 if x > 2 else x for x in kl_values]
 
     sns.set_style("darkgrid")
     plt.plot(list(components), r2_values, marker="o", label="R2 score")
@@ -173,7 +183,9 @@ if __name__ == "__main__":
     plt.ylabel("Score")
 
     # Mostrare il grafico
-    plt.show()
+    # plt.show()
+    plt.savefig(f"changing_components_best_{pdf.name}_{dataset_params['n_samples']}.png")
+    plt.close("all")
 
     # experiment 2:
     # - cambiare il numero di neuroni del primo layer della mlp vedere come cambia l'r2:
@@ -210,9 +222,11 @@ if __name__ == "__main__":
         metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
 
         metrics_changed_2.append(metrics)
+        print("--> r2", metrics["r2"], "kl", metrics["kl"])
 
     r2_values = list(map(operator.itemgetter("r2"), metrics_changed_2))
     kl_values = list(map(operator.itemgetter("kl"), metrics_changed_2))
+    kl_values = [1 if x > 2 else x for x in kl_values]
 
     sns.set_style("darkgrid")
     plt.plot(list(neurons), r2_values, marker="o", label="R2 score")
@@ -229,3 +243,4 @@ if __name__ == "__main__":
 
     # Mostrare il grafico
     plt.show()
+    plt.savefig(f"changing_neurons_best_{pdf.name}_{dataset_params['n_samples']}.png")
