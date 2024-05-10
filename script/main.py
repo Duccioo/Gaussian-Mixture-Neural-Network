@@ -112,20 +112,20 @@ if __name__ == "__main__":
 
     dataset_params = {
         "n_samples": args.samples,
-        "seed": 8,
+        "seed": 37,
         "target_type": target_type,
-        "validation_size": 50,
+        "validation_size": 0,
         # "test_range_limit": (0, 5),
     }
 
     # ------- Statistic Model Params -------
 
     gm_model_params = {
-        "n_components": 5,
-        "n_init": 100,
-        "max_iter": 100,
-        "init_params": "random",
-        "random_state": dataset_params["seed"],
+        "n_components": 3,
+        "n_init": 10,
+        "max_iter": 10,
+        "init_params": "random_from_data",
+        "random_state": 78,
     }
 
     knn_model_params = {"k1": 1.5005508828032745, "kn": 23}
@@ -136,28 +136,25 @@ if __name__ == "__main__":
     mlp_params = {
         "dropout": 0.000,
         "hidden_layer": [
-            (50, nn.ReLU()),
-            (50, nn.Tanh()),
-            (22, nn.Tanh()),
-            (44, nn.Sigmoid()),
+            (56, nn.ReLU()),
         ],
         "last_activation": "lambda",  # None or lambda
     }
 
     train_params = {
-        "epochs": 770,
-        "batch_size": 34,
-        "loss_type": "mse_loss",  # "huber_loss" or "mse_loss"
-        "optimizer": "RMSprop",  # "RMSprop" or "Adam"
-        "learning_rate": 0.0007619622536581125,
+        "epochs": 620,
+        "batch_size": 52,
+        "loss_type": "huber_loss",  # "huber_loss" or "mse_loss"
+        "optimizer": "Adam",  # "RMSprop" or "Adam"
+        "learning_rate": 0.00843,
     }
 
     gmm_target_params = {
-        "n_components": 4,
-        "n_init": 70,
-        "max_iter": 30,
+        "n_components": 16,
+        "n_init": 40,
+        "max_iter": 10,
         "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
-        "random_state": 27,
+        "random_state": 64,
     }
 
     pw_target_params = {"h": 0.4489913561811363}
@@ -286,9 +283,7 @@ if __name__ == "__main__":
 
         model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])
         cb = MetricTracker()
-        trainer = L.Trainer(
-            accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb]
-        )
+        trainer = L.Trainer(accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb])
         trainer.fit(model, train_loader, val_loader)
         train_loss = cb.train_epoch_losses
         val_loss = cb.val_epoch_losses
@@ -356,9 +351,7 @@ if __name__ == "__main__":
     print("R2 score: ", summary.model_metrics.get("r2"))
     print("KL divergence: ", summary.model_metrics.get("kl"))
     print("Done!")
-    summary.plot_pdf(
-        pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show
-    )
+    summary.plot_pdf(pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show)
     summary.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
     summary.log_dataset()
     summary.log_target()

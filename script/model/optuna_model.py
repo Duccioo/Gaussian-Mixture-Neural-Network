@@ -104,12 +104,19 @@ def objective_MLP(
         "learning_rate",
         params["learning_rate"][0],
         params["learning_rate"][1],
-        log=True,
+        step=0.00001,
+        # log=True,
     )
 
     # loss_name = trial.suggest_categorical("loss", params["loss"])
     s_epoch = trial.suggest_int("epoch", params["epoch"][0], params["epoch"][1], step=10)
-    optimizer_name = trial.suggest_categorical("optimizer", params["optimizer"])
+    if isinstance(params["optimizer"], (list, tuple)):
+        optimizer_name = trial.suggest_categorical(
+            "optimizer", params["optimizer"][0], params["optimizer"][1]
+        )
+    else:
+        optimizer_name = params["optimizer"]
+
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
 
     loss_name = trial.suggest_categorical("loss", params["loss"])
@@ -232,6 +239,9 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
             max_iter = params["max_iter"]
 
         if isinstance(params["n_components"], (list, tuple)):
+            if params["n_components"][1] >= n_samples:
+                params["n_components"][1] = n_samples - 1
+
             n_components = trial.suggest_int(
                 "n_components", params["n_components"][0], params["n_components"][1]
             )
@@ -257,13 +267,17 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
         )
 
         # generate the id
-        unique_id_gmm_target = generate_unique_id([x_training, n_components, bias, init_params_gmm, seed], 5)
-        file_name = f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}.npz"
+        # unique_id_gmm_target = generate_unique_id(
+        #     [pdf.training_X, n_components, bias, init_params_gmm, seed], 5
+        # )
+        file_name = (
+            f"target_gm_C{n_components}_S{n_samples}_P{init_params_gmm}_N{n_init}_M{max_iter}_R{gmm_seed}.npz"
+        )
         file_path = os.path.join(tmp_dir, file_name)
 
         _, gen_target_y = gen_target_with_gm_parallel(
             gm_model=gm_model,
-            X=x_training,
+            X=pdf.training_X,
             save_filename=file_path,
             progress_bar=True,
             n_jobs=3,
@@ -282,17 +296,17 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
 
         _, gen_target_y = gen_target_with_parzen_parallel(
             parzen_model,
-            X=x_training,
+            X=pdf.training_X,
             progress_bar=True,
             n_jobs=3,
         )
 
     metrics = objective_MLP(
         trial,
-        x_training,
+        pdf.training_X,
         gen_target_y,
-        x_test,
-        y_test,
+        pdf.test_X,
+        pdf.test_Y,
         params,
         device,
         params["pruning"],

@@ -1,156 +1,236 @@
-import torch
 import torch.nn as nn
 
-import seaborn as sns
-from matplotlib import pyplot as plt
+import argparse
 
-from sklearn.metrics import r2_score
 from sklearn.mixture import GaussianMixture
-from torchsummary import summary
 
 # ---
 from utils.data_manager import PDF
 from model.nn_model import NeuralNetworkModular
 from model.gm_model import gen_target_with_gm_parallel
+from model.parzen_model import gen_target_with_parzen_parallel, ParzenWindow_Model
 from utils.utils import set_seed
+from utils.summary import Summary
+from training import training, evaluation
 
 
-def train_old_style(
-    model,
-    X_train,
-    Y_train,
-    lr,
-    epochs,
-    batch_size,
-    optimizer_name,
-    device,
-    criterion=nn.HuberLoss(),
-):
+def arg_parsing():
+    # command line parsing
+    parser = argparse.ArgumentParser(description="Project for AI Exam")
+    parser.add_argument("--pdf", type=str, default="default")
+    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--samples", type=int, default=100)
 
-    X_train = torch.tensor(X_train, dtype=torch.float32)
-    Y_train = torch.tensor(Y_train, dtype=torch.float32)
+    parser.add_argument("--show", action="store_true", default=False)
+    parser.add_argument("--save", action="store_true", default=False)
 
-    xy_train = torch.cat((X_train, Y_train), 1)
+    parser.add_argument("--components", type=int, default=4)
+    parser.add_argument("--mlp_targets", action="store_true", default=False)
+    parser.add_argument("--gpu", action="store_true")
+    parser.add_argument("--bias", action="store_true", default=False)
+    parser.add_argument("--gridsearch", action="store_true", default=False)
 
-    train_loader = torch.utils.data.DataLoader(
-        xy_train,
-        batch_size=batch_size,
-        shuffle=True,
-    )
+    parser.add_argument("--gmm", action="store_true", default=False)
+    parser.add_argument("--knn", action="store_true", default=False)
+    parser.add_argument("--parzen", action="store_true", default=False)
+    args = parser.parse_args()
 
-    optimizer = getattr(torch.optim, optimizer_name)(model.parameters(), lr=lr)
+    return args
 
-    # Training of the model.
-    for epoch in range(epochs):
-        model.train()
-        for batch_idx, train_data in enumerate(train_loader):
-            data = train_data[:, 0]
-            target = train_data[:, 1]
-            # Limiting training data for faster epochs.
 
-            data, target = data.view(data.size(0), 1).to(device), target.view(
-                target.size(0), 1
-            ).to(device)
+def take_official_name(name: list = ""):
+    name = name.lower()
+    name = name.replace("  ", " ")
 
-            optimizer.zero_grad()
-            output = model(data)
+    official_model_name = ""
+    official_target_name = ""
 
-            loss_value = criterion(output, target)
-            loss_value.backward()
-            optimizer.step()
+    pnn_allow_name: list = [
+        "parzen window neural netowrk",
+        "parzen windows neural netowrk",
+        "pnn",
+        "parzen window + nn",
+        "parzen windows + nn",
+    ]
+
+    gnn_allow_name: list = [
+        "gaussian mixture neural network",
+        "gnn",
+        "gaussian mixture + nn",
+        "gmm + nn",
+        "gmm+nn",
+    ]
+
+    parzen_allow_name: list = [
+        "parzen window",
+        "parzen windows",
+        "parzen base",
+        "parzen",
+    ]
+
+    gmm_allow_name: list = ["gmm", "gaussian mixture", "gaussian mixture model"]
+
+    knn_allow_name: list = ["knn", "k nearest neighbors"]
+
+    if name in pnn_allow_name:
+        official_model_name = "PNN"
+        official_target_name = "PARZEN"
+
+    elif name in gnn_allow_name:
+        official_model_name = "GNN"
+        official_target_name = "GMM"
+
+    elif name in gmm_allow_name:
+        official_model_name = "GMM"
+
+    elif name in knn_allow_name:
+        official_model_name = "KNN"
+
+    elif name in parzen_allow_name:
+        official_model_name = "Parzen Window"
+
+    else:
+        print("model name not found")
+
+    return official_model_name, official_target_name
 
 
 if __name__ == "__main__":
 
-    # load dataset
-    pdf = PDF(default="MULTIVARIATE_1254")
-    bias = False
-    stepper_x_test = 0.01
-    n_samples = 50
+    args = arg_parsing()
 
-    seed = 8
-    n_components = 4
-    init_params_gmm = "k-means++"
-    n_init = 70
-    max_iter = 30
+    model_type = "gnn"
+
+    model_type, target_type = take_official_name(model_type)
+
+    dataset_params = {
+        "n_samples": args.samples,
+        "seed": 47,
+        "target_type": target_type,
+        "validation_size": 0,
+        # "test_range_limit": (0, 5),
+    }
+
+    # ------ MLP PARAMS --------
+    mlp_params = {
+        "dropout": 0.000,
+        "hidden_layer": [
+            (24, nn.Tanh()),
+            (26, nn.Tanh()),
+            (48, nn.Tanh()),
+        ],
+        "last_activation": "lambda",  # None or lambda
+    }
+
+    train_params = {
+        "epochs": 910,
+        "batch_size": 44,
+        "loss_type": "mse_loss",  # "huber_loss" or "mse_loss"
+        "optimizer": "Adam",  # "RMSprop" or "Adam"
+        "learning_rate": 0.00537,
+    }
+
+    gmm_target_params = {
+        "n_components": 4,
+        "n_init": 40,
+        "max_iter": 70,
+        "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
+        "random_state": 14,
+    }
+
+    pw_target_params = {"h": 0.2631334377419931}
 
     # set seed
-    set_seed(seed)
     # torch.manual_seed(seed)
 
     # parametri della rete neurale:
-    epochs = 770
-    batch_size = 34
-    lr = 0.0007619622536581125
-    optimizer_name = "RMSprop"
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cpu"
 
-    # load parameters
-    dropout = 0.00
-    hidden_layer = [
-        (50, nn.ReLU()),
-        (50, nn.Tanh()),
-        (22, nn.Tanh()),
-        (44, nn.Sigmoid()),
-    ]
-    last_activation = "lambda"
+    set_seed(dataset_params["seed"])
 
-    pdf.generate_training(n_samples=n_samples, seed=seed)
+    # choose the pdf for the experiment
+    if args.pdf in ["exponential", "exp"]:
+        pdf = PDF(default="EXPONENTIAL_06")
+    else:
+        pdf = PDF(default="MULTIVARIATE_1254")
 
-    # generate the data for plotting the pdf
-    X_test, Y_test = pdf.generate_test(stepper=stepper_x_test)
+    # load dataset
+    pdf.generate_training(n_samples=dataset_params["n_samples"])
+    pdf.generate_validation(n_samples=dataset_params["validation_size"])
+    pdf.generate_test()
 
-    gm_model = GaussianMixture(
-        n_components=n_components,
-        init_params=init_params_gmm,
-        random_state=27,
-        n_init=n_init,
-        max_iter=max_iter,
-    )
-
-    _, Y_predicted = gen_target_with_gm_parallel(
-        gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
-    )
+    if dataset_params["target_type"] == "GMM":
+        print("generating target with GMM")
+        gm_model = GaussianMixture(**gmm_target_params)
+        _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True)
+    else:
+        print("generating target with Parzen")
+        parzen_model = ParzenWindow_Model(**pw_target_params)
+        _, target_y = gen_target_with_parzen_parallel(
+            parzen_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
+        )
 
     model = NeuralNetworkModular(
-        dropout=dropout,
-        hidden_layer=hidden_layer,
-        last_activation=last_activation,
+        dropout=mlp_params["dropout"],
+        hidden_layer=mlp_params["hidden_layer"],
+        last_activation=mlp_params["last_activation"],
     )
 
-    # print(model)
+    # print(summary(model, 1))
 
-    print(summary(model, verbose=0))
-
-    train_old_style(
+    train_loss, val_loss, _, _ = training(
         model,
         pdf.training_X,
-        Y_predicted,
-        lr,
-        epochs,
-        batch_size,
-        optimizer_name,
+        target_y,
+        pdf.validation_X,
+        pdf.validation_Y,
+        train_params["learning_rate"],
+        train_params["epochs"],
+        train_params["batch_size"],
+        train_params["optimizer"],
+        train_params["loss_type"],
         device,
-        nn.MSELoss(),
     )
+
 
     # evaluate model
-    model.eval()
-    with torch.no_grad():
-        y_predicted_mlp = model(torch.tensor(X_test, dtype=torch.float32))
-        y_predicted_mlp = y_predicted_mlp.detach().numpy()
-        r2 = r2_score(Y_test, y_predicted_mlp)
-        print(r2)
+    metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
 
-    # print figure
+    # ----------------------------- SUMMARY -----------------------------
+    # Creo l'oggetto che mi gestirà il salvataggio dell'esperimento e gli passo tutti i parametri
+    experiment_name = f"Experiment "
 
-    sns.lineplot(x=X_test.flatten(), y=Y_test.flatten(), color="green", label="True")
-    sns.lineplot(
-        x=X_test.flatten(), y=y_predicted_mlp.flatten(), label="base", color="red"
+    if dataset_params["target_type"] == "GMM":
+        target_params = gmm_target_params
+        experiment_name += f" C{gmm_target_params['n_components']} "
+    elif dataset_params["target_type"] == "PARZEN":
+        target_params = pw_target_params
+        experiment_name += f" H{pw_target_params['h']} "
+
+    experiment_name += f"S{dataset_params['n_samples']}"
+
+    summary_name = Summary(
+        experiment=experiment_name,
+        model_type=model_type,
+        pdf=pdf,
+        dataset_params=dataset_params,
+        model_params=mlp_params,
+        target_params=target_params,
+        train_params=train_params,
+        overwrite=True,
     )
-    sns.scatterplot(
-        x=pdf.training_X.flatten(), y=Y_predicted.flatten(), color="purple", label="GMM"
-    )
 
-    plt.legend()
-    plt.show()
+    # summary.calculate_metrics(pdf.training_Y, pdf.test_Y, pdf_predicted, target_y)
+    # print("*******************************")
+    # print("ID EXPERIMENT:", summary.id_experiment)
+    # print("R2 score: ", summary.model_metrics.get("r2"))
+    # print("KL divergence: ", summary.model_metrics.get("kl"))
+    # print("Done!")
+    # summary.plot_pdf(pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show)
+    # summary.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
+    # summary.log_dataset()
+    # summary.log_target()
+    # summary.log_model(model=model)
+    # summary.log_train_params()
+    # summary.scoreboard()

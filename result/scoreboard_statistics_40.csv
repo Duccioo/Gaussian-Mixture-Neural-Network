@@ -1,0 +1,4 @@
+Id,Date,Pdf Type,Model Type,R2 Score,Dimension,Max Error Score,Mse Score,Evs Score,Ise Score,K1 Score,Model Param,Seed
+f07b1d67,2024-05-09 13-31,MULTIVARIATE_1254,GMM,-0.0076,1,0.2221,0.0031,-0.0064,75.3175,0.1609,"{'n_components': 3, 'n_init': 10, 'max_iter': 100, 'init_params': 'random_from_data', 'random_state': 78}",8
+5fb36405,2024-05-09 13-31,MULTIVARIATE_1254,GMM,0.1316,1,0.1773,0.0024,0.1481,69.2231,0.1576,"{'n_components': 3, 'n_init': 10, 'max_iter': 100, 'init_params': 'random_from_data', 'random_state': 78}",8
+84562851,2024-05-09 13-35,MULTIVARIATE_1254,GMM,0.5009,1,0.1229,0.0014,0.5077,53.0924,0.1576,"{'n_components': 3, 'n_init': 10, 'max_iter': 10, 'init_params': 'random_from_data', 'random_state': 78}",8

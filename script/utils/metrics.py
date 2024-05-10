@@ -40,6 +40,18 @@ def ise_score(true_pdf, predicted_pdf, bin_width=0.01):
 
 
 def calculate_metrics(true_pdf, predicted_pdf, round_num=10):
+    """
+    Calculate various metrics for evaluating the performance of a model.
+
+    Parameters:
+    - true_pdf (array-like): The true values of the distribution.
+    - predicted_pdf (array-like): The predicted values of the distribution.
+    - round_num (int, optional): The number of decimal places to round the metrics to. Defaults to 10.
+
+    Returns:
+    - metrics (dict): A dictionary containing the calculated metrics. The keys are the metric names and the values are the rounded metric values.
+     dict with: r2, mse, max_error, ise, kl, evs -> keys
+    """
     metrics = {}
     metrics["r2"] = round(r2_score(true_pdf, predicted_pdf), ndigits=round_num)
     metrics["mse"] = round(mean_squared_error(true_pdf, predicted_pdf), ndigits=round_num)

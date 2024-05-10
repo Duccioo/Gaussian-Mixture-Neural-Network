@@ -5,6 +5,7 @@ import tempfile
 
 import sys
 import os
+import argparse
 
 
 # ---
@@ -13,24 +14,40 @@ a = sys.path.append((os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from model.optuna_model import objective_MLP_allin_gmm
 
 
+def arg_parsing():
+    # command line parsing
+    parser = argparse.ArgumentParser(description="Project for AI Exam")
+    parser.add_argument("--dataset", type=str, default="multivariate")  # multivariate or exp
+    parser.add_argument("--objective", type=str, default="objective_parzen")  # knn, parzen, gmm
+    parser.add_argument("--jobs", type=int, default=2)
+    parser.add_argument("--samples", type=int, default=100)
+    parser.add_argument("--trials", type=int, default=500)
+    args = parser.parse_args()
+
+    return args
+
+
 def start_optuna_mlp():
+    
+    args = arg_parsing()
+
     device = "cpu"
 
     params = {
         # TRAIN PARAMS:
-        "optimizer": ("Adam", "RMSprop"),
-        "learning_rate": (1e-5, 1e-1),
+        "optimizer": "Adam",
+        "learning_rate": (1e-5, 1e-2),
         "epoch": (100, 1000),
         "batch_size": (2, 80),
         "loss": ("mse_loss", "huber_loss"),
         # MODEL PARAMS:
-        "n_layers": (1, 5),
+        "n_layers": (1, 4),
         "range_neurons": (4, 64),
         "range_dropout": 0,
         "suggest_activation": ("relu", "tanh", "sigmoid"),
         "suggest_last_activation": ("lambda", None),
         # GMM PARAMS:
-        "n_components": (2, 40),
+        "n_components": [2, 40],
         "init_params_gmm": ("k-means++", "kmeans", "random", "random_from_data"),
         "n_init": (10, 100),
         "max_iter": (10, 100),
@@ -38,18 +55,20 @@ def start_optuna_mlp():
         # PARZEN PARAMS:
         "h": (0.001, 1),
         # DATASET PARAMS:
-        "dataset_type": "multivariate",  # multivariate or exp
-        "n_samples": 50,
+        "dataset_type": args.dataset,  # multivariate or exp
+        "n_samples": args.samples,
         "seed": (0, 100),  # seed che influisce sui pesi della MLP
-        "target_type": "PARZEN",  # GMM or PARZEN
+        "target_type": "GMM",  # GMM or PARZEN
         "pruning": False,  # use pruning if True
-        "trials": 300,
+        "trials": 400,
         "save_database": True,  # save study in database
     }
 
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
-    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) 2"
+    study_name = (
+        f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) COR"
+    )
     if not isinstance(params["seed"], (list, tuple)):
         study_name += f" fixed {params['seed']} seed"
 

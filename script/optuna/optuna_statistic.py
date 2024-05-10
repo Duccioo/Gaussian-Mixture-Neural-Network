@@ -21,16 +21,12 @@ from utils.data_manager import PDF
 def objective_knn(trial: optuna.Trial, params):
 
     if isinstance(params["n_samples"], (list, tuple)):
-        n_samples = trial.suggest_int(
-            "n_samples", params["n_samples"][0], params["n_samples"][1]
-        )
+        n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
     else:
         n_samples = params["n_samples"]
 
     if isinstance(params["dataset_seed"], (list, tuple)):
-        dataset_seed = trial.suggest_int(
-            "dataset_seed", params["dataset_seed"][0], params["dataset_seed"][1]
-        )
+        dataset_seed = trial.suggest_int("dataset_seed", params["dataset_seed"][0], params["dataset_seed"][1])
     else:
         dataset_seed = params["dataset_seed"]
 
@@ -44,9 +40,7 @@ def objective_knn(trial: optuna.Trial, params):
     else:
         knn_kn = params["kn"]
 
-    X_train, _, X_test, Y_test = load_dataset(
-        n_samples, dataset_seed, type=params["dataset_type"]
-    )
+    X_train, _, X_test, Y_test = load_dataset(n_samples, dataset_seed, type=params["dataset_type"])
 
     model_parzen = KNN_Model(knn_k1, knn_kn)
     model_parzen.fit(training=X_train)
@@ -62,30 +56,25 @@ def objective_knn(trial: optuna.Trial, params):
 def objective_gmm(trial: optuna.Trial, params):
 
     if isinstance(params["n_samples"], (list, tuple)):
-        n_samples = trial.suggest_int(
-            "n_samples", params["n_samples"][0], params["n_samples"][1]
-        )
+        n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
     else:
         n_samples = params["n_samples"]
 
     if isinstance(params["dataset_seed"], (list, tuple)):
-        dataset_seed = trial.suggest_int(
-            "dataset_seed", params["dataset_seed"][0], params["dataset_seed"][1]
-        )
+        dataset_seed = trial.suggest_int("dataset_seed", params["dataset_seed"][0], params["dataset_seed"][1])
     else:
         dataset_seed = params["dataset_seed"]
 
     if isinstance(params["gmm_seed"], (list, tuple)):
-        gmm_seed = trial.suggest_int(
-            "gmm_seed", params["gmm_seed"][0], params["gmm_seed"][1]
-        )
+        gmm_seed = trial.suggest_int("gmm_seed", params["gmm_seed"][0], params["gmm_seed"][1])
     else:
         gmm_seed = params["gmm_seed"]
 
     if isinstance(params["n_components"], (list, tuple)):
-        n_components = trial.suggest_int(
-            "n_components", params["n_components"][0], params["n_components"][1]
-        )
+        if params["n_components"][1] > n_samples:
+            params["n_components"][1] = n_samples
+            
+        n_components = trial.suggest_int("n_components", params["n_components"][0], params["n_components"][1])
     else:
         n_components = params["n_components"]
 
@@ -95,22 +84,16 @@ def objective_gmm(trial: optuna.Trial, params):
         init_param_gmm = params["init_params"]
 
     if isinstance(params["max_iter"], (list, tuple)):
-        max_iter = trial.suggest_int(
-            "max_iter", params["max_iter"][0], params["max_iter"][1], step=10
-        )
+        max_iter = trial.suggest_int("max_iter", params["max_iter"][0], params["max_iter"][1], step=10)
     else:
         max_iter = params["max_iter"]
 
     if isinstance(params["n_init"], (list, tuple)):
-        n_init = trial.suggest_int(
-            "n_init", params["n_init"][0], params["n_init"][1], step=10
-        )
+        n_init = trial.suggest_int("n_init", params["n_init"][0], params["n_init"][1], step=10)
     else:
         n_init = params["n_init"]
 
-    X_train, _, X_test, Y_test = load_dataset(
-        n_samples, dataset_seed, type=params["dataset_type"]
-    )
+    X_train, _, X_test, Y_test = load_dataset(n_samples, dataset_seed, type=params["dataset_type"])
 
     # train the GMM model
     model_gmm = GaussianMixture(
@@ -134,16 +117,12 @@ def objective_gmm(trial: optuna.Trial, params):
 def objective_parzen(trial: optuna.Trial, params):
 
     if isinstance(params["n_samples"], (list, tuple)):
-        n_samples = trial.suggest_int(
-            "n_samples", params["n_samples"][0], params["n_samples"][1]
-        )
+        n_samples = trial.suggest_int("n_samples", params["n_samples"][0], params["n_samples"][1])
     else:
         n_samples = params["n_samples"]
 
     if isinstance(params["dataset_seed"], (list, tuple)):
-        dataset_seed = trial.suggest_int(
-            "dataset_seed", params["dataset_seed"][0], params["dataset_seed"][1]
-        )
+        dataset_seed = trial.suggest_int("dataset_seed", params["dataset_seed"][0], params["dataset_seed"][1])
     else:
         dataset_seed = params["dataset_seed"]
 
@@ -152,9 +131,7 @@ def objective_parzen(trial: optuna.Trial, params):
     else:
         h_ = params["h"]
 
-    X_train, _, X_test, Y_test = load_dataset(
-        n_samples, dataset_seed, type=params["dataset_type"]
-    )
+    X_train, _, X_test, Y_test = load_dataset(n_samples, dataset_seed, type=params["dataset_type"])
 
     model_parzen = ParzenWindow_Model(h=h_)
     model_parzen.fit(training=X_train)
@@ -186,12 +163,8 @@ def load_dataset(n_samples: int = 100, seed: int = 42, type: str = "multivariate
 def arg_parsing():
     # command line parsing
     parser = argparse.ArgumentParser(description="Project for AI Exam")
-    parser.add_argument(
-        "--dataset", type=str, default="multivariate"
-    )  # multivariate or exp
-    parser.add_argument(
-        "--objective", type=str, default="objective_parzen"
-    )  # knn, parzen, gmm
+    parser.add_argument("--dataset", type=str, default="multivariate")  # multivariate or exp
+    parser.add_argument("--objective", type=str, default="objective_parzen")  # knn, parzen, gmm
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--trials", type=int, default=500)
@@ -227,7 +200,7 @@ if __name__ == "__main__":
     }
 
     # optuna.logging.get_logger("optuna")
-    study_name = f"{params['objective_name']} {params['dataset_type']} {params['n_samples']}"  # Unique identifier of the study.
+    study_name = f"{params['objective_name']} {params['dataset_type']} {params['n_samples']} 2"   # Unique identifier of the study.
     storage_name = f"db02-statistic_{params['n_samples']}_{params['dataset_type']}.db"
 
     db_folder = "optuna_database"
@@ -249,7 +222,7 @@ if __name__ == "__main__":
         lambda trial: objective(trial, params),
         n_trials=params["n_trials"],
         timeout=None,
-        n_jobs=-1,
+        n_jobs=1,
         show_progress_bar=True,
     )
 
