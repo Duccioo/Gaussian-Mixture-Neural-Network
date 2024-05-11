@@ -1,6 +1,7 @@
 import argparse
 import operator
 
+import torch
 import torch.nn as nn
 
 from sklearn.mixture import GaussianMixture
@@ -16,6 +17,25 @@ from model.parzen_model import gen_target_with_parzen_parallel, ParzenWindow_Mod
 from utils.utils import set_seed
 from utils.summary import Summary
 from training import training, evaluation
+
+
+def reset_all_weights(model: nn.Module) -> None:
+    """
+    refs:
+        - https://discuss.pytorch.org/t/how-to-re-set-alll-parameters-in-a-network/20819/6
+        - https://stackoverflow.com/questions/63627997/reset-parameters-of-a-neural-network-in-pytorch
+        - https://pytorch.org/docs/stable/generated/torch.nn.Module.html
+    """
+
+    @torch.no_grad()
+    def weight_reset(m: nn.Module):
+        # - check if the current module has reset_parameters & if it's callabed called it on m
+        reset_parameters = getattr(m, "reset_parameters", None)
+        if callable(reset_parameters):
+            m.reset_parameters()
+
+    # Applies fn recursively to every submodule see: https://pytorch.org/docs/stable/generated/torch.nn.Module.html
+    model.apply(fn=weight_reset)
 
 
 def arg_parsing():
@@ -94,13 +114,17 @@ if __name__ == "__main__":
     pdf.generate_test()
 
     gm_model = GaussianMixture(**gmm_target_params)
-    _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True)
+    _, target_y = gen_target_with_gm_parallel(
+        gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
+    )
 
     model = NeuralNetworkModular(
         dropout=mlp_params["dropout"],
         hidden_layer=mlp_params["hidden_layer"],
         last_activation=mlp_params["last_activation"],
     )
+
+    torch.save(model.state_dict(), "model_inizialization.pth")
 
     train_loss, val_loss, _, _ = training(
         model,
@@ -129,23 +153,32 @@ if __name__ == "__main__":
 
     metrics_changed_1 = []
     start_components = gmm_target_params["n_components"]
-    components = range(1, 20)
+    components = range(1, 30)
 
     for c in components:
 
         print("generating target with GMM")
         gmm_target_params["n_components"] = c
         gm_model = GaussianMixture(**gmm_target_params)
-        _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True)
+        _, target_y = gen_target_with_gm_parallel(
+            gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
+        )
 
-        model = NeuralNetworkModular(
+        set_seed(dataset_params["seed"])
+
+        model_1 = NeuralNetworkModular(
             dropout=mlp_params["dropout"],
             hidden_layer=mlp_params["hidden_layer"],
             last_activation=mlp_params["last_activation"],
         )
 
+        # reset_all_weights(model_1)
+
+        # Reset dei pesi
+        model_1.load_state_dict(torch.load("model_inizialization.pth"))
+
         train_loss, val_loss, _, _ = training(
-            model,
+            model_1,
             pdf.training_X,
             target_y,
             pdf.validation_X,
@@ -159,15 +192,19 @@ if __name__ == "__main__":
         )
 
         # evaluate model
-        metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
+        metrics = evaluation(model_1, pdf.test_X, pdf.test_Y, device)
 
         metrics_changed_1.append(metrics)
-        print("--> r2", metrics["r2"], "kl", metrics["kl"])
+        print(f"{c} --> r2", metrics["r2"], "kl", metrics["kl"])
+
+    print("-----")
 
     r2_values = list(map(operator.itemgetter("r2"), metrics_changed_1))
     kl_values = list(map(operator.itemgetter("kl"), metrics_changed_1))
 
-    kl_values = [1 if x > 2 else x for x in kl_values]
+    # kl_values = [1 if x > 2 else x for x in kl_values]
+
+    f1 = plt.figure()
 
     sns.set_style("darkgrid")
     plt.plot(list(components), r2_values, marker="o", label="R2 score")
@@ -175,29 +212,39 @@ if __name__ == "__main__":
 
     # Aggiungere la legenda
     plt.legend(
-        title=f"Changing Components, Best {pdf.name} with {dataset_params['n_samples']}", labels=["R2", "KL"]
+        labels=["R2 score", "KL score"],
+    )
+    plt.title(
+        f"Changing Components {args.pdf} with {dataset_params['n_samples']} samples",
     )
 
     # Etichettare gli assi
     plt.xlabel("Number of Components")
     plt.ylabel("Score")
+    plt.ylim(-0.5, 2)
 
     # Mostrare il grafico
     # plt.show()
-    plt.savefig(f"changing_components_best_{pdf.name}_{dataset_params['n_samples']}.png")
-    plt.close("all")
+    plt.savefig(
+        f"changing_components_best_{pdf.name}_{dataset_params['n_samples']}.png"
+    )
+    # plt.clf()
 
     # experiment 2:
     # - cambiare il numero di neuroni del primo layer della mlp vedere come cambia l'r2:
     metrics_changed_2 = []
-    neurons = range(2, 64, 2)
+    neurons = range(1, 100)
     gmm_target_params["n_components"] = start_components
     gm_model = GaussianMixture(**gmm_target_params)
-    _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True)
+    _, target_y = gen_target_with_gm_parallel(
+        gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
+    )
 
     for neuron in neurons:
 
         mlp_params["hidden_layer"][0][0] = neuron
+
+        # print(mlp_params["hidden_layer"])
 
         model = NeuralNetworkModular(
             dropout=mlp_params["dropout"],
@@ -222,19 +269,25 @@ if __name__ == "__main__":
         metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
 
         metrics_changed_2.append(metrics)
-        print("--> r2", metrics["r2"], "kl", metrics["kl"])
+        print(neuron, " --> r2", metrics["r2"], "kl", metrics["kl"])
 
     r2_values = list(map(operator.itemgetter("r2"), metrics_changed_2))
     kl_values = list(map(operator.itemgetter("kl"), metrics_changed_2))
-    kl_values = [1 if x > 2 else x for x in kl_values]
+    # kl_values = [1 if x > 2 else x for x in kl_values]
+
+    f2 = plt.figure()
 
     sns.set_style("darkgrid")
     plt.plot(list(neurons), r2_values, marker="o", label="R2 score")
     plt.plot(list(neurons), kl_values, marker="o", label="KL score")
+    plt.ylim(-0.5, 2)
 
     # Aggiungere la legenda
     plt.legend(
-        title=f"Changing Neurons, Best {pdf.name} with {dataset_params['n_samples']}", labels=["R2", "KL"]
+        labels=["R2 score", "KL score"],
+    )
+    plt.title(
+        f"Changing Neurons {args.pdf} with {dataset_params['n_samples']} samples",
     )
 
     # Etichettare gli assi
