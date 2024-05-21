@@ -105,7 +105,7 @@ if __name__ == "__main__":
 
     dataset_params = {
         "n_samples": args.samples,
-        "seed": 47,
+        "seed": 51,
         "target_type": target_type,
         "validation_size": 0,
         # "test_range_limit": (0, 5),
@@ -115,27 +115,25 @@ if __name__ == "__main__":
     mlp_params = {
         "dropout": 0.000,
         "hidden_layer": [
-            (24, nn.Tanh()),
-            (26, nn.Tanh()),
-            (48, nn.Tanh()),
+            (34, nn.ReLU()),
         ],
         "last_activation": "lambda",  # None or lambda
     }
 
     train_params = {
-        "epochs": 910,
-        "batch_size": 44,
-        "loss_type": "mse_loss",  # "huber_loss" or "mse_loss"
+        "epochs": 320,
+        "batch_size": 12,
+        "loss_type": "huber_loss",  # "huber_loss" or "mse_loss"
         "optimizer": "Adam",  # "RMSprop" or "Adam"
-        "learning_rate": 0.00537,
+        "learning_rate": 0.0012300000000000002,
     }
 
     gmm_target_params = {
-        "n_components": 4,
+        "n_components": 2,
         "n_init": 40,
-        "max_iter": 70,
+        "max_iter": 100,
         "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
-        "random_state": 14,
+        "random_state": 59,
     }
 
     pw_target_params = {"h": 0.2631334377419931}
@@ -163,7 +161,9 @@ if __name__ == "__main__":
     if dataset_params["target_type"] == "GMM":
         print("generating target with GMM")
         gm_model = GaussianMixture(**gmm_target_params)
-        _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True)
+        _, target_y = gen_target_with_gm_parallel(
+            gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
+        )
     else:
         print("generating target with Parzen")
         parzen_model = ParzenWindow_Model(**pw_target_params)
@@ -193,9 +193,10 @@ if __name__ == "__main__":
         device,
     )
 
-
     # evaluate model
-    metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
+    metrics, pdf_predicted = evaluation(model, pdf.test_X, pdf.test_Y, device)
+
+    # print(metrics["r2"])
 
     # ----------------------------- SUMMARY -----------------------------
     # Creo l'oggetto che mi gestirà il salvataggio dell'esperimento e gli passo tutti i parametri
@@ -221,16 +222,18 @@ if __name__ == "__main__":
         overwrite=True,
     )
 
-    # summary.calculate_metrics(pdf.training_Y, pdf.test_Y, pdf_predicted, target_y)
-    # print("*******************************")
-    # print("ID EXPERIMENT:", summary.id_experiment)
-    # print("R2 score: ", summary.model_metrics.get("r2"))
-    # print("KL divergence: ", summary.model_metrics.get("kl"))
-    # print("Done!")
-    # summary.plot_pdf(pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show)
-    # summary.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
-    # summary.log_dataset()
-    # summary.log_target()
-    # summary.log_model(model=model)
-    # summary.log_train_params()
-    # summary.scoreboard()
+    summary_name.calculate_metrics(pdf.training_Y, pdf.test_Y, pdf_predicted, target_y)
+    print("*******************************")
+    print("ID EXPERIMENT:", summary_name.id_experiment)
+    print("R2 score: ", summary_name.model_metrics.get("r2"))
+    print("KL divergence: ", summary_name.model_metrics.get("kl"))
+    print("Done!")
+    summary_name.plot_pdf(
+        pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show
+    )
+    summary_name.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
+    summary_name.log_dataset()
+    summary_name.log_target()
+    summary_name.log_model(model=model)
+    summary_name.log_train_params()
+    summary_name.scoreboard()

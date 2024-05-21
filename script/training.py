@@ -20,12 +20,16 @@ def validation(model, X_train, Y_train, X_val, Y_val, device, loss_type):
     with torch.no_grad():
         output_train = model(X_train.to(device))
         training_loss = loss_type(output_train, Y_train.to(device)).item()
-        metrics_train = calculate_metrics(Y_train.numpy(), output_train.detach().cpu().numpy(), 5)
+        metrics_train = calculate_metrics(
+            Y_train.numpy(), output_train.detach().cpu().numpy(), 5
+        )
         if X_val.size(0) > 0:
             output_val = model(X_val.to(device))
             validation_loss = loss_type(output_val, Y_val.to(device)).item()
             metrics_val = calculate_metrics(
-                Y_val.clone().detach().cpu().numpy(), output_val.detach().cpu().numpy(), 5
+                Y_val.clone().detach().cpu().numpy(),
+                output_val.detach().cpu().numpy(),
+                5,
             )
 
     return training_loss, validation_loss, metrics_train, metrics_val
@@ -73,7 +77,9 @@ def training(
             data = train_data[:, 0]
             target = train_data[:, 1]
             # Limiting training data for faster epochs.
-            data, target = data.view(data.size(0), 1).to(device), target.view(target.size(0), 1).to(device)
+            data, target = data.view(data.size(0), 1).to(device), target.view(
+                target.size(0), 1
+            ).to(device)
 
             optimizer.zero_grad()
             output = model(data)
@@ -83,8 +89,8 @@ def training(
             optimizer.step()
 
         # finita un epocha faccio il validation test:
-        train_loss_epoch, val_loss_epoch, train_metric_epoch, val_metric_epoch = validation(
-            model, X_train, Y_train, X_val, Y_val, device, loss
+        train_loss_epoch, val_loss_epoch, train_metric_epoch, val_metric_epoch = (
+            validation(model, X_train, Y_train, X_val, Y_val, device, loss)
         )
 
         train_loss_list.append(train_loss_epoch)
@@ -101,4 +107,4 @@ def evaluation(model, test_X, test_Y, device):
         pdf_predicted = pdf_predicted.detach().cpu().numpy()
         metrics = calculate_metrics(test_Y, pdf_predicted)
 
-    return metrics
+    return metrics, pdf_predicted

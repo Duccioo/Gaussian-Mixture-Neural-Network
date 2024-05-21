@@ -1,0 +1,2 @@
+Id,Date,Pdf Type,Target Type,Target Params,Model Type,R2 Score,Train Epoch,Batch Size,Learning Rate,N Layer,N Neurons,Loss Type,Dimension,Max Error Score,K1 Score,Seed
+587b25cd,2024-05-15 14-08,EXPONENTIAL_06,GMM,k-means++ C2 ,GNN,0.9722,320,12,0.0012300000000000002,1,34,huber_loss,1,0.1557,0.007,51
