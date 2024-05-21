@@ -119,7 +119,11 @@ def objective_MLP(
 
     optimizer = getattr(optim, optimizer_name)(model.parameters(), lr=lr)
 
-    loss_name = trial.suggest_categorical("loss", params["loss"])
+    if isinstance(params["loss"], (list, tuple)):
+        loss_name = trial.suggest_categorical("loss", params["loss"])
+    else:
+        loss_name = params["loss"]
+        
     loss_type = getattr(F, loss_name)
 
     batch_size = trial.suggest_int("batch_size", params["batch_size"][0], params["batch_size"][1], step=2)
@@ -280,7 +284,7 @@ def objective_MLP_allin_gmm(trial: optuna.Trial, params, tmp_dir, device):
             X=pdf.training_X,
             save_filename=file_path,
             progress_bar=True,
-            n_jobs=3,
+            n_jobs=4,
         )
 
     elif params["target_type"] == "PARZEN":
