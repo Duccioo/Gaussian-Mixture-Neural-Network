@@ -96,6 +96,7 @@ def arg_parsing():
     parser.add_argument("--gmm", action="store_true", default=False)
     parser.add_argument("--knn", action="store_true", default=False)
     parser.add_argument("--parzen", action="store_true", default=False)
+    parser.add_argument("--model", type=str, default="GMM")
     args = parser.parse_args()
 
     return args
@@ -106,7 +107,7 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     # select model type from "GMM" "Parzen Window" "KNN" "PNN" "GNN"
-    model_type = "gnn"
+    model_type = args.model
 
     model_type, target_type = take_official_name(model_type)
 
@@ -121,14 +122,14 @@ if __name__ == "__main__":
     # ------- Statistic Model Params -------
 
     gm_model_params = {
-        "n_components": 3,
-        "n_init": 10,
-        "max_iter": 10,
+        "random_state": 46,
         "init_params": "random_from_data",
-        "random_state": 78,
+        "max_iter": 90,
+        "n_components": 5,
+        "n_init": 60,
     }
 
-    knn_model_params = {"k1": 1.5005508828032745, "kn": 23}
+    knn_model_params = {"k1":1.5005508828032745 , "kn": 23}
 
     parzen_window_params = {"h": 0.28293348425061676}
 
@@ -283,7 +284,9 @@ if __name__ == "__main__":
 
         model = LitModularNN(**mlp_params, learning_rate=train_params["learning_rate"])
         cb = MetricTracker()
-        trainer = L.Trainer(accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb])
+        trainer = L.Trainer(
+            accelerator="auto", max_epochs=train_params["epochs"], callbacks=[cb]
+        )
         trainer.fit(model, train_loader, val_loader)
         train_loss = cb.train_epoch_losses
         val_loss = cb.val_epoch_losses
@@ -351,7 +354,9 @@ if __name__ == "__main__":
     print("R2 score: ", summary.model_metrics.get("r2"))
     print("KL divergence: ", summary.model_metrics.get("kl"))
     print("Done!")
-    summary.plot_pdf(pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show)
+    summary.plot_pdf(
+        pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show
+    )
     summary.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
     summary.log_dataset()
     summary.log_target()

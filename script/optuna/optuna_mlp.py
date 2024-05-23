@@ -48,7 +48,7 @@ def start_optuna_mlp():
         "suggest_last_activation": ("lambda", None),
         # GMM PARAMS:
         "n_components": [2, 40],
-        "init_params_gmm": ("k-means++", "kmeans", "random", "random_from_data"),
+        "init_params_gmm": ("k-means++", "kmeans"),
         "n_init": (10, 100),
         "max_iter": (10, 100),
         "gmm_seed": (0, 100),
@@ -67,7 +67,7 @@ def start_optuna_mlp():
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
     study_name = (
-        f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) COR"
+        f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) *** mac"
     )
     if not isinstance(params["seed"], (list, tuple)):
         study_name += f" fixed {params['seed']} seed"

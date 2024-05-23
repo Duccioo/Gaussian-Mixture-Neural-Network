@@ -89,14 +89,15 @@ def training(
             optimizer.step()
 
         # finita un epocha faccio il validation test:
-        train_loss_epoch, val_loss_epoch, train_metric_epoch, val_metric_epoch = (
-            validation(model, X_train, Y_train, X_val, Y_val, device, loss)
-        )
+        if len(X_val) > 0:
+            train_loss_epoch, val_loss_epoch, train_metric_epoch, val_metric_epoch = (
+                validation(model, X_train, Y_train, X_val, Y_val, device, loss)
+            )
 
-        train_loss_list.append(train_loss_epoch)
-        val_loss_list.append(val_loss_epoch)
-        train_metrics_list.append(train_metric_epoch)
-        val_metrics_list.append(val_metric_epoch)
+            train_loss_list.append(train_loss_epoch)
+            val_loss_list.append(val_loss_epoch)
+            train_metrics_list.append(train_metric_epoch)
+            val_metrics_list.append(val_metric_epoch)
     return train_loss_list, val_loss_list, train_metrics_list, val_metrics_list
 
 

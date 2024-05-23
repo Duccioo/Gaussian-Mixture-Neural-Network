@@ -65,17 +65,17 @@ if __name__ == "__main__":
         # PARZEN PARAMS:
         "h": (0.001, 1),
         # DATASET PARAMS:
-        "dataset_type": "multivariate",  # multivariate or exp
-        "n_samples": 200,
+        "dataset_type": "exp",  # multivariate or exp
+        "n_samples": 50,
         "seed": (0, 100),  # seed che influisce sui pesi della MLP
-        "target_type": "GMM",  # GMM or PARZEN
+        "target_type": "PARZEN",  # GMM or PARZEN
         "pruning": False,  # use pruning if True
         "trials": 400,
         "save_database": True,  # save study in database
     }
 
     optuna.logging.get_logger("optuna")
-    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning)"
+    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) 5"
     if not isinstance(params["seed"], (list, tuple)):
         study_name += f" fixed {params['seed']} seed"
 
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         "..",
         "result",
         "optuna_md",
-        f"{params['target_type']}_{params['n_samples']}_2",
+        f"{params['target_type']}_{params['n_samples']}",
     )
     # creo se non esiste già la cartella delle immagini
     check_base_dir(directory_optuna_result, "img")

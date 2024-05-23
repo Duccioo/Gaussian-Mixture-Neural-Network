@@ -1,0 +1,7 @@
+Id,Date,Pdf Type,Model Type,R2 Score,Dimension,Max Error Score,Mse Score,Evs Score,Ise Score,K1 Score,Model Param,Seed
+f9b47cf8,2024-05-23 17-12,EXPONENTIAL_06,GMM,0.6079,1,0.7735,0.0537,0.6116,91.1557,0.3069,"{'n_components': 2, 'n_init': 70, 'max_iter': 20, 'init_params': 'kmeans', 'random_state': 56}",37
+316bc33d,2024-05-23 17-13,EXPONENTIAL_06,Parzen Window,0.9142,1,0.457,0.0117,0.9146,74.6299,0.3069,{'h': 0.1697189191100632},37
+7124f84f,2024-05-23 17-14,EXPONENTIAL_06,KNN,0.6933,1,1.2493,0.042,0.7145,115.6446,0.3069,"{'k1': 4.368735084592013, 'kn': 23}",37
+be164103,2024-05-23 17-15,MULTIVARIATE_1254,KNN,0.3616,1,0.0941,0.0019,0.416,20.1995,0.1706,"{'k1': 2.9567713114668117, 'kn': 23}",37
+1b1cc318,2024-05-23 17-16,MULTIVARIATE_1254,Parzen Window,0.457,1,0.0938,0.0016,0.6277,46.1844,0.1706,{'h': 0.9999926786987219},37
+3cff7945,2024-05-23 17-17,MULTIVARIATE_1254,GMM,0.1837,1,0.1113,0.0024,0.4851,43.9243,0.1706,"{'random_state': 95, 'init_params': 'kmeans', 'n_components': 1, 'n_init': 60, 'max_iter': 100}",37

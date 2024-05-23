@@ -17,3 +17,9 @@ c91647f0,2024-04-23 11-08,MULTIVARIATE_1254,Parzen Window,0.6615,1,0.1014,0.001,
 2aae30e0,2024-05-09 13-31,MULTIVARIATE_1254,GMM,-0.1441,1,0.2256,0.0035,-0.1424,89.446,0.1609,"{'n_components': 3, 'n_init': 10, 'max_iter': 100, 'init_params': 'random_from_data', 'random_state': 78}",8
 c1f87f64,2024-05-09 13-31,MULTIVARIATE_1254,GMM,-0.0004,1,0.2248,0.0028,0.0188,82.7112,0.1576,"{'n_components': 3, 'n_init': 10, 'max_iter': 100, 'init_params': 'random_from_data', 'random_state': 78}",8
 a39bdf12,2024-05-09 13-35,MULTIVARIATE_1254,GMM,-0.0006,1,0.2248,0.0028,0.0186,82.7223,0.1576,"{'n_components': 3, 'n_init': 10, 'max_iter': 10, 'init_params': 'random_from_data', 'random_state': 78}",8
+f2c36c8b,2024-05-23 17-19,EXPONENTIAL_06,GMM,0.7645,1,1.0493,0.0376,0.7647,395.0874,0.702,"{'random_state': 49, 'init_params': 'random', 'n_components': 31, 'n_init': 30, 'max_iter': 10}",37
+db38709f,2024-05-23 17-19,EXPONENTIAL_06,Parzen Window,0.9296,1,0.7746,0.0113,0.9339,314.4611,0.702,{'h': 0.13769091718282794},37
+e4fa39da,2024-05-23 17-21,EXPONENTIAL_06,KNN,0.9078,1,0.7351,0.0147,0.9271,316.2619,0.702,"{'k1': 3.291443562872368, 'kn': 23}",37
+8c2ed8b9,2024-05-23 17-22,MULTIVARIATE_1254,KNN,0.4752,1,0.1541,0.0015,0.5261,64.3591,0.1576,"{'k1': 7.255122108569863, 'kn': 23}",37
+9afce42c,2024-05-23 17-46,MULTIVARIATE_1254,GMM,0.072,1,0.2248,0.0026,0.0913,82.3759,0.1576,"{'random_state': 55, 'init_params': 'kmeans', 'max_iter': 70, 'n_components': 4, 'n_init': 60}",37
+832d9094,2024-05-23 17-46,MULTIVARIATE_1254,Parzen Window,0.6615,1,0.1014,0.001,0.662,52.5236,0.1576,{'h': 0.53249163817731},37

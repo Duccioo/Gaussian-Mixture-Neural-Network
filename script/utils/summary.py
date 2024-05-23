@@ -417,14 +417,20 @@ class Summary:
         name="pdf",
     ):
 
-        fig, ax = plt.subplots()
+        fig = plt.figure()
+        sns.set_theme(style="darkgrid")
+        plt.grid(True)
         # Plot delle pdf
 
-        if Y_pred is not None:
-            ax.plot(X_test, Y_pred, label=self.model_type, color="red")
-
         if Y_test is not None:
-            ax.plot(X_test, Y_test, label="True PDF", color="green", linestyle="--")
+            plt.plot(
+                X_test,
+                Y_test,
+                label="True PDF",
+                color="green",
+                linestyle="--",
+                alpha=0.7,
+            )
 
         if Y_target is not None:
             Y_target = [element[0] for element in Y_target]
@@ -445,7 +451,16 @@ class Summary:
             # exit()
             # ax.scatter(X_train, Y_target, label="PORCA MADONNA")
 
-            ax.plot(X_train, Y_target, label=f"Target ({self.model_type})", marker="o")
+            plt.plot(
+                X_train,
+                Y_target,
+                label=f"Target ({self.model_type})",
+                marker="o",
+                alpha=0.7,
+            )
+
+        if Y_pred is not None:
+            plt.plot(X_test, Y_pred, label=self.model_type, color="red", linewidth=2)
 
         # histogram:
         # ax.hist(
@@ -456,10 +471,11 @@ class Summary:
         #     label="Data",
         #     color="dimgray",
         # )
-        ax.set_title(f"PDF estimation with {len(X_train)} samples")
-        ax.set_xlabel("X")
-        ax.set_ylabel("Probability Density")
-        ax.legend()
+
+        # ax.set_title(f"PDF estimation with {len(X_train)} samples")
+        plt.xlabel("X")
+        plt.ylabel("Probability Density")
+        plt.legend()
 
         if save == True:
             extension = ".png"
@@ -512,6 +528,49 @@ class Summary:
                 with open(self.filename_summary_md_path, "a") as file:
                     console = Console(file=file)
                     console.print("## Loss Plot")
+                    console.print("")
+                    console.print(f'<img src="{ img_folder_name + extension}">')
+                    console.print("")
+
+            if show == True:
+                plt.show()
+
+            # Chiusura della figura
+            plt.close(fig)
+
+    def plot_training_score(
+        self,
+        train_metric: list,
+        val_metric: list = None,
+        metric_name: str = "R2",
+        fig_name: str = "train_metric",
+        save: bool = True,
+        show: bool = False,
+    ):
+
+        if train_metric is not None:
+            fig, ax = plt.subplots()
+
+            sns.lineplot(data=train_metric, label="train loss", color="orange", ax=ax)
+
+            if val_metric is not None:
+                sns.lineplot(data=val_metric, label="val loss", color="blue", ax=ax)
+
+            # if val_acc is not None:
+            #     sns.lineplot(data=val_acc, label="val R2", ax=ax)
+
+            ax.set_title(f"{metric_name} Plot")
+            ax.set_xlabel("Step")
+            ax.set_ylabel(f"{metric_name} Score")
+            ax.legend()
+            if save == True:
+                extension = ".png"
+                img_folder_path = self.experiment_dir
+                img_folder_name = fig_name + "_" + str(self.id_experiment)
+                plt.savefig(os.path.join(img_folder_path, img_folder_name + extension))
+                with open(self.filename_summary_md_path, "a") as file:
+                    console = Console(file=file)
+                    console.print("## Training Metric Plot")
                     console.print("")
                     console.print(f'<img src="{ img_folder_name + extension}">')
                     console.print("")

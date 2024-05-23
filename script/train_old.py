@@ -103,40 +103,46 @@ if __name__ == "__main__":
 
     model_type, target_type = take_official_name(model_type)
 
+    validation_samples = 50
+
     dataset_params = {
-        "n_samples": args.samples,
-        "seed": 51,
+        "n_samples": int(args.samples) + validation_samples,
+        "seed": 31,
         "target_type": target_type,
-        "validation_size": 0,
+        "validation_size": validation_samples,
         # "test_range_limit": (0, 5),
     }
 
     # ------ MLP PARAMS --------
+
+    gmm_target_params = {
+        "n_components": 11,
+        "n_init": 20,
+        "max_iter": 100,
+        "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
+        "random_state": 45,
+    }
+
+    pw_target_params = {"h": 0.026604557869874756}
+
     mlp_params = {
         "dropout": 0.000,
         "hidden_layer": [
-            (34, nn.ReLU()),
+            [39, nn.Tanh()],
+            (20, nn.Sigmoid()),
+            (34, nn.Sigmoid()),
+            (26, nn.Tanh()),
         ],
         "last_activation": "lambda",  # None or lambda
     }
 
     train_params = {
-        "epochs": 320,
-        "batch_size": 12,
+        "epochs": 540,
+        "batch_size": 52,
         "loss_type": "huber_loss",  # "huber_loss" or "mse_loss"
         "optimizer": "Adam",  # "RMSprop" or "Adam"
-        "learning_rate": 0.0012300000000000002,
+        "learning_rate": 0.003454947958915411,
     }
-
-    gmm_target_params = {
-        "n_components": 2,
-        "n_init": 40,
-        "max_iter": 100,
-        "init_params": "k-means++",  # "k-means++" or "random" or "kmeans" or "random_from_data"
-        "random_state": 59,
-    }
-
-    pw_target_params = {"h": 0.2631334377419931}
 
     # set seed
     # torch.manual_seed(seed)
@@ -179,7 +185,7 @@ if __name__ == "__main__":
 
     # print(summary(model, 1))
 
-    train_loss, val_loss, _, _ = training(
+    train_loss, val_loss, train_metrics, val_metrics = training(
         model,
         pdf.training_X,
         target_y,
@@ -192,6 +198,9 @@ if __name__ == "__main__":
         train_params["loss_type"],
         device,
     )
+
+    training_r2 = [r2_value["r2"] for r2_value in train_metrics]
+    validation_r2 = [r2_value["r2"] for r2_value in val_metrics]
 
     # evaluate model
     metrics, pdf_predicted = evaluation(model, pdf.test_X, pdf.test_Y, device)
@@ -232,6 +241,9 @@ if __name__ == "__main__":
         pdf.training_X, target_y, pdf.test_X, pdf.test_Y, pdf_predicted, args.show
     )
     summary_name.plot_loss(train_loss, val_loss, loss_name=train_params["loss_type"])
+    summary_name.plot_training_score(
+        training_r2, validation_r2, "R2", save=True, show=args.show
+    )
     summary_name.log_dataset()
     summary_name.log_target()
     summary_name.log_model(model=model)

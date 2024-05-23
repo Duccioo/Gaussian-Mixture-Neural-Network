@@ -9,13 +9,15 @@ from sklearn.mixture import GaussianMixture
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+from rich.progress import track
+
+import numpy as np
+
 # ---
 from utils.data_manager import PDF
 from model.nn_model import NeuralNetworkModular
 from model.gm_model import gen_target_with_gm_parallel
-from model.parzen_model import gen_target_with_parzen_parallel, ParzenWindow_Model
 from utils.utils import set_seed
-from utils.summary import Summary
 from training import training, evaluation
 
 
@@ -66,7 +68,7 @@ if __name__ == "__main__":
     args = arg_parsing()
 
     dataset_params = {
-        "n_samples": 100,
+        "n_samples": args.samples,
         "seed": 98,
         "target_type": "GMM",
         "validation_size": 0,
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     mlp_params = {
         "dropout": 0.000,
         "hidden_layer": [
-            [54, nn.Sigmoid()],
+            [26, nn.Sigmoid()],
             (26, nn.Tanh()),
             (24, nn.Tanh()),
             (54, nn.ReLU()),
@@ -126,7 +128,7 @@ if __name__ == "__main__":
 
     torch.save(model.state_dict(), "model_inizialization.pth")
 
-    train_loss, val_loss, _, _ = training(
+    training(
         model,
         pdf.training_X,
         target_y,
@@ -141,7 +143,7 @@ if __name__ == "__main__":
     )
 
     # evaluate model
-    metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
+    metrics, _ = evaluation(model, pdf.test_X, pdf.test_Y, device)
 
     print(
         f"R2 di partenza con {gmm_target_params['n_components']} e {mlp_params['hidden_layer'][0][0]}",
@@ -155,13 +157,15 @@ if __name__ == "__main__":
     start_components = gmm_target_params["n_components"]
     components = range(1, 30)
 
-    for c in components:
+    progress_bar = track(components, description="Experiment 1")
+
+    for c in progress_bar:
 
         print("generating target with GMM")
         gmm_target_params["n_components"] = c
         gm_model = GaussianMixture(**gmm_target_params)
         _, target_y = gen_target_with_gm_parallel(
-            gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
+            gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=False
         )
 
         set_seed(dataset_params["seed"])
@@ -177,7 +181,7 @@ if __name__ == "__main__":
         # Reset dei pesi
         model_1.load_state_dict(torch.load("model_inizialization.pth"))
 
-        train_loss, val_loss, _, _ = training(
+        training(
             model_1,
             pdf.training_X,
             target_y,
@@ -192,7 +196,7 @@ if __name__ == "__main__":
         )
 
         # evaluate model
-        metrics = evaluation(model_1, pdf.test_X, pdf.test_Y, device)
+        metrics, _ = evaluation(model_1, pdf.test_X, pdf.test_Y, device)
 
         metrics_changed_1.append(metrics)
         print(f"{c} --> r2", metrics["r2"], "kl", metrics["kl"])
@@ -204,6 +208,12 @@ if __name__ == "__main__":
 
     # kl_values = [1 if x > 2 else x for x in kl_values]
 
+    print(
+        "------- IL VALORE MIGLIORE DI R2 E' ",
+        np.max(r2_values),
+        f"CON {components[np.argmax(r2_values)]} numero di componenti",
+    )
+
     f1 = plt.figure()
 
     sns.set_style("darkgrid")
@@ -214,9 +224,6 @@ if __name__ == "__main__":
     plt.legend(
         labels=["R2 score", "KL score"],
     )
-    plt.title(
-        f"Changing Components {args.pdf} with {dataset_params['n_samples']} samples",
-    )
 
     # Etichettare gli assi
     plt.xlabel("Number of Components")
@@ -224,33 +231,40 @@ if __name__ == "__main__":
     plt.ylim(-0.5, 2)
 
     # Mostrare il grafico
-    # plt.show()
     plt.savefig(
         f"changing_components_best_{pdf.name}_{dataset_params['n_samples']}.png"
     )
-    # plt.clf()
+    plt.show()
+    plt.close(f1)
 
     # experiment 2:
     # - cambiare il numero di neuroni del primo layer della mlp vedere come cambia l'r2:
     metrics_changed_2 = []
-    neurons = range(1, 100)
+    neurons = range(1, 200)
     gmm_target_params["n_components"] = start_components
     gm_model = GaussianMixture(**gmm_target_params)
     _, target_y = gen_target_with_gm_parallel(
-        gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
+        gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=False
     )
 
-    for neuron in neurons:
+    progress_bar = track(neurons, description="Experiment 2")
+
+    for neuron in progress_bar:
 
         mlp_params["hidden_layer"][0][0] = neuron
 
         # print(mlp_params["hidden_layer"])
+
+        set_seed(dataset_params["seed"])
 
         model = NeuralNetworkModular(
             dropout=mlp_params["dropout"],
             hidden_layer=mlp_params["hidden_layer"],
             last_activation=mlp_params["last_activation"],
         )
+
+        # Reset dei pesi
+        model_1.load_state_dict(torch.load("model_inizialization.pth"))
 
         train_loss, val_loss, _, _ = training(
             model,
@@ -266,7 +280,7 @@ if __name__ == "__main__":
             device,
         )
 
-        metrics = evaluation(model, pdf.test_X, pdf.test_Y, device)
+        metrics, _ = evaluation(model, pdf.test_X, pdf.test_Y, device)
 
         metrics_changed_2.append(metrics)
         print(neuron, " --> r2", metrics["r2"], "kl", metrics["kl"])
@@ -274,6 +288,12 @@ if __name__ == "__main__":
     r2_values = list(map(operator.itemgetter("r2"), metrics_changed_2))
     kl_values = list(map(operator.itemgetter("kl"), metrics_changed_2))
     # kl_values = [1 if x > 2 else x for x in kl_values]
+
+    print(
+        "------- IL VALORE MIGLIORE DI R2 E' ",
+        np.max(r2_values),
+        f"CON {neurons[np.argmax(r2_values)]} numero di neuroni",
+    )
 
     f2 = plt.figure()
 
@@ -286,14 +306,11 @@ if __name__ == "__main__":
     plt.legend(
         labels=["R2 score", "KL score"],
     )
-    plt.title(
-        f"Changing Neurons {args.pdf} with {dataset_params['n_samples']} samples",
-    )
 
     # Etichettare gli assi
     plt.xlabel("Number of Neurons")
     plt.ylabel("Score")
 
     # Mostrare il grafico
-    plt.show()
     plt.savefig(f"changing_neurons_best_{pdf.name}_{dataset_params['n_samples']}.png")
+    plt.show()

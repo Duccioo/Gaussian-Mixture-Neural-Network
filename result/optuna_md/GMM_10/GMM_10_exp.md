@@ -17,6 +17,7 @@
 ![result](img/10_exp_batch_size_r2.png)
 
 ![result](img/10_exp_n_components_r2.png)
+
 ### TOP 3
 - R2 score: **0.97240629**
 	 - **seed** : *51*

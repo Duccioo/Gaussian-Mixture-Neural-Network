@@ -1,3 +1,6 @@
+import math
+
+
 from sklearn.metrics import (
     r2_score,
     mean_squared_error,
@@ -13,9 +16,15 @@ import numpy as np
 
 def kl_divergence_score(true_pdf, predicted_pdf):
     kl_divergence = entropy(true_pdf, qk=predicted_pdf)
-    # kl_divergence = np.mean(kl_divergence)
+
+    # print(len(kl_divergence))
     # print(kl_divergence)
-    return min(kl_divergence[0], 100000)
+    kl_divergence = np.mean(kl_divergence)
+    if math.isinf(kl_divergence):
+        kl_divergence = 10e9
+        # print("---!!!!!: ", kl_divergence)
+    # print(kl_divergence)
+    return kl_divergence
 
     """Epsilon is used here to avoid conditional code for
     checking that neither P nor Q is equal to 0."""
@@ -54,10 +63,16 @@ def calculate_metrics(true_pdf, predicted_pdf, round_num=10):
     """
     metrics = {}
     metrics["r2"] = round(r2_score(true_pdf, predicted_pdf), ndigits=round_num)
-    metrics["mse"] = round(mean_squared_error(true_pdf, predicted_pdf), ndigits=round_num)
+    metrics["mse"] = round(
+        mean_squared_error(true_pdf, predicted_pdf), ndigits=round_num
+    )
     metrics["max_error"] = round(max_error(true_pdf, predicted_pdf), ndigits=round_num)
     metrics["ise"] = round(ise_score(true_pdf, predicted_pdf), ndigits=round_num)
-    metrics["kl"] = round(kl_divergence_score(true_pdf, predicted_pdf), ndigits=round_num)
-    metrics["evs"] = round(explained_variance_score(true_pdf, predicted_pdf), ndigits=round_num)
+    metrics["kl"] = round(
+        kl_divergence_score(true_pdf, predicted_pdf), ndigits=round_num
+    )
+    metrics["evs"] = round(
+        explained_variance_score(true_pdf, predicted_pdf), ndigits=round_num
+    )
 
     return metrics
