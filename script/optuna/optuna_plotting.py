@@ -65,17 +65,17 @@ if __name__ == "__main__":
         # PARZEN PARAMS:
         "h": (0.001, 1),
         # DATASET PARAMS:
-        "dataset_type": "exp",  # multivariate or exp
-        "n_samples": 50,
+        "dataset_type": "multivariate",  # multivariate or exp
+        "n_samples": 100,
         "seed": (0, 100),  # seed che influisce sui pesi della MLP
-        "target_type": "PARZEN",  # GMM or PARZEN
+        "target_type": "GMM",  # GMM or PARZEN
         "pruning": False,  # use pruning if True
         "trials": 400,
         "save_database": True,  # save study in database
     }
 
     optuna.logging.get_logger("optuna")
-    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) 5"
+    study_name = f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) COR"
     if not isinstance(params["seed"], (list, tuple)):
         study_name += f" fixed {params['seed']} seed"
 
@@ -114,6 +114,7 @@ if __name__ == "__main__":
         "activation_l0",
         "last_activation",
         "batch_size",
+        "init_params_gmm"
     ]
 
     if params["target_type"] == "PARZEN":
@@ -161,7 +162,6 @@ if __name__ == "__main__":
         sns.set_theme(style="darkgrid")
         # fig, ax = plt.subplots()
         plt.grid(True)
-        plt.title(f"Slice Plot on {params['dataset_type']} {params['n_samples']}")
         plt.xlabel(f"{param_s}")
         plt.ylabel("R2 Score")
 

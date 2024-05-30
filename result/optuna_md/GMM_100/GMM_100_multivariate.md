@@ -16,6 +16,8 @@
 
 ![result](img/100_multivariate_batch_size_r2.png)
 
+![result](img/100_multivariate_init_params_gmm_r2.png)
+
 ![result](img/100_multivariate_n_components_r2.png)
 ### TOP 3
 - R2 score: **0.94151184**
