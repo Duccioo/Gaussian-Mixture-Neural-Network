@@ -58,7 +58,7 @@ def start_optuna_mlp():
         "dataset_type": args.dataset,  # multivariate or exp
         "n_samples": args.samples,
         "seed": (0, 100),  # seed che influisce sui pesi della MLP
-        "target_type": "GMM",  # GMM or PARZEN
+        "target_type": "PARZEN",  # GMM or PARZEN
         "pruning": False,  # use pruning if True
         "trials": 400,
         "save_database": True,  # save study in database
@@ -67,7 +67,7 @@ def start_optuna_mlp():
     # optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     optuna.logging.get_logger("optuna")
     study_name = (
-        f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) *** mac"
+        f"MLP {params['dataset_type']} {params['target_type']} {params['n_samples']} (no pruning) COR 3"
     )
     if not isinstance(params["seed"], (list, tuple)):
         study_name += f" fixed {params['seed']} seed"
