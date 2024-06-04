@@ -2,96 +2,48 @@
 
 A model that combines Gaussian mixture models with Neural Networks
 
-## Summary of the Project:
+## Summary of the Project
 
-<details>
-  <summary>The project consists in studying a new algorithm not covered in class which, along the lines of Parzen Neural Networks, brings together the statistical approach and machine learning approaches.</summary>
-  
-  The new algorithm consists in using the Gaussian Mixture Model (GMM) instead of the Parzen Window to generate the targets for the Neural Network.
-Then the goal is to estimate the PDF of a certain unlabeled dataset.
+The project consists in studying a new algorithm, along the lines of Parzen Neural Networks, brings together the statistical approach and machine learning approaches for training an ANN from an unlabeled data sample of patterns randomly drawn from an underlying probability density function (PDF).
 
-The project must follow these points:
+The algorithm leverages both the generalization capabilities of ANNs and
+the generality of the maximum-likelihood estimates of the parameters
+of Gaussian mixture models. Therefore, the proposed machine is termed
+**Gaussian-mixture Neural Network (GNN)**. The best selling points of the
+GNN lie in its simplicity and effectiveness.
 
-- [x] find a model for the NN (MLP: hard coding or finding a simulator)
-- [x] find a model for GMM (hard coding or finding a simulator)
-- [x] generate the dataset: composed of 100 examples/points taken randomly from an exponential distribution
+(This project is the continuation of the work carried out for the A.I. exam., Siena, 2024)
 
-- [x] carry out the experiments, producing as a result a graph that compares the true PDF of the exponential distribution and the one approximated by the GMM and the GMM+NN.
-      Each experiment differs according to the number of components per GNN:
+## Paper
 
-  - 4 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-  - 8 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-  - 16 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
-  - 32 components for GMM: estimate the PDF only with the GMM and with the new machine (GMM + NN)
+This project was submitted to ANNPR 2024.
 
-- [x] do one last experiment: choose the best model of the GMM+NN and check the differences between the unbiased and biased models. Do the same considerations of the Parzen Neural Network apply in this case too?
-
-- [x] finally, a report on the activity carried out is expected in order to produce a scientific paper type text.
-      The report must be structured in the following chapters:
-  - title
-  - abstracts
-  - introduction
-  - explanation of the algorithm
-  - the experiments and the results through the plots
-  - personal conclusions
-
-### remarks:
-
-1. remark: the MLP must be chosen so as to maximize the result for each experiment, it is therefore expected to do different experiments to choose the best hyperparameters (the comparison can also be done only graphically)
-
-2. pytorch is quite recommended
-
-3. To draw the graph of GNN+NN, do we give it the same 100 examples as input?
-
-   > No. AS we did for the demonstrations during the course, create a set of
-   > equally-spaced datapoints at regular intervals, e.g. 0.01, 0.02, 0.03, ...
-   > and plot the corresponding outputs from the pdf-estimator at hand as a
-   > "continuous" line.
-
-4. Does the output of the MLP need to be normalized to make it a PDF?
-
-   > No. A sigmoid with adaptive amplitude lambda would be best, but that
-   > feature will hardly be made available to you by any simulator you decide
-   > to use. Effective. I recommend you either go for a standard ReLU (whose
-   > output range [0, +INFINITY) matches the range of any pdf), or even a plain
-   > linear activation function but in the latter case you need to force to 0.0
-   > any possible negative outputs at test-tne
-
-5. Should the input to GNN + MLP be normalized around 0 to get better results?
-
-   > You can do that but that is not needed, experiece witt the exponential pdf
-   > shows the neywork can cope withthe expected range of thenon-normalized
-   > inputs.
-
-6. Do we compare the various experiments only graphically?
-   > Yes. A quantitative comparison would involve computing the Integrated
-   > Squared error (ISE) or other simiar measure of distance between he
-   > estimated pdf and the true pdf (you can do that you feel like it, of
-   > course!)
-
-</details>
+[Paper LINK ](https://openreview.net/forum?id=foiH9tX3Fc)
 
 ## File Structure:
 
-- ### `data` folder:
+- **`data` folder**:
 
   Contains the save files of the training and test data.
   This files are automatically generated and saved when run the algorithm.
 
-- ### `script` folder:
+- **`script` folder**:
 
   It contains all the code for running the project.
 
-  - #### `model/nn_model.py`: the model for the Neural Network part of the project. Implements the
-  - #### `model/gm_model.py`:
+  - **`model` folder** contains scripts for each model used in the paper (for example in `moddel/nn_model.py` there is all the code for building the Neural Network used in the GNN and PNN models)
 
-  - #### `data_manager.py`: the data manager for the
+  - `utils/data_manager.py`: the data manager for the creation of the PDF samples for the training and test set
+  - `optuna` folder: contains optuna scripts for searching the best hyperparameters for each model
 
-  - #### `utils.py`: the utilities for the
+  - **`main_MLP.py`**: the main function for the training and evaluetion of the GNN and PNN models
+  - **`main_STATISTIC.py`**: the main function for the training and evaluetion of Statistic Models (Kn-NN, GMM, Parzen Window)
 
-  - #### `main.py`: the main function for the project
+  - `test_experiment.py`: script for change number of components and number of neurons in GNN models.
 
-- ### `other` folder: some random code created at the beginning of the project
+- `miscellaneous` folder: some random code created at the beginning of the project
+- `optuna_database` folder: contains all the database file created with optuna with all the trials for all the experiments used to find the best hyperparameters
+- `project` folder: contains old result created at the beginning of the project for A.I. Exams (with [@AparnaPindali](https://github.com/AparnaPindali))
 
 ## Installation
 
@@ -109,87 +61,139 @@ In order to run all the script you need to run the following:
    pip install -r requirements.txt
    ```
 
-3. Optional if you have not install Pytorch on your machine: https://pytorch.org/get-started/locally/
+3. install Pytorch on your machine: https://pytorch.org/get-started/locally/
 
 ## Run Locally
+
+<details>
+<summary>  <h3>  1. Run GNN or PNN models </h3> </summary>
 
 On the repo folder:
 
 ```bash
-python script/main.py
+python script/main_MLP.py
 ```
 
-### Command Options:
+You can also specify some additional arguments:
 
-- `--components <int n>` : for setting the number of components for the GMM (default 4)
-- `--jobs <int n>` : for setting the number of jobs/threads for paralelize the gridsearch (default -1, use all the cores of your machine)
-- `--rate <float n>` : for setting the rate that the true exponential pdf should be computed (default 0.6)
-- `--samples <int n>` : number of samples for the training set taken from the exponential distribution (default 100)
-- `--show` : if selected show the img at the end of the process (default false)
-- `--gpu` : if specified try to use dedicated GPU (require pytorch and cuda installed, default false)
-- `--bias` : if specified train the model with a bias version of GMM for generating the target for the MLP
+- `--pdf <str> s` : select the PDF type (default: exponential PDF with rate = 0.6). Other possibility is `multivariate` to select a multivariate PDF, otherwise you can specify with your prefer parameters.
+- `--model <str> s` : select the model type, possibilities = ['GNN', 'PNN' ] (default: GNN)
 
-### Grid Search Parameters:
+- `--jobs <int n>`: specify the number of threads used to create the target samples for the MLP (default: 2)
+- `--samples <int n>`: number of samples used for training (default: 100)
+- `--show`: toggle used to show the predicted PDF (default: not show the graph)
+- `--gpu`: toggle to use, if possible, GPU acceleration
 
-you can specify the parameters to test the GMM+MLP model with the grid search in the `scripts/main.py` file.
-By default:
+#### Example:
+
+```bash
+ python script/main_MLP.py --model=PNN --samples=150 --pdf=multivariate --show
+```
+
+This command run the training on the PNN (Parzen Neural Network) on the Multivariate PDF with 150 samples used for the training, and at the end of training show the predicted PDF on the screen
+
+</details>
+
+<details>
+
+<summary>  <h3> 2. Run Statistical models </h3> </summary>
+
+On the repo folder:
+
+```bash
+python script/main_STATISTIC.py
+```
+
+You can also specify some additional arguments:
+
+- `--pdf <str> s` : select the PDF type (default: exponential PDF with rate = 0.6). Other possibility is `multivariate` to select a multivariate PDF, otherwise you can specify with your prefer parameters.
+- `--model <str> s` : select the model type, possibilities = ['KNN', 'Parzen', 'GMM' ] (default: GMM)
+
+- `--samples <int n>`: number of samples used for training (default: 100)
+- `--show`: toggle used to show the predicted PDF (default: not show the graph)
+
+#### Example:
+
+```bash
+python script/main_STATISTICS.py --samples=300 --model=knn --pdf=exponential
+```
+
+This command run the training on the KNN (Kn-NN) on the Multivariate PDF with 300 samples used for the training
+
+</details>
+
+## Change Models Parameters (optionally)
+
+It is possible to change the parameters of each model (statistical or Neural Network) by entering the specific file and modifying the python dictionaries in the **`__main__ `** part of the file.
+
+### Statistical model
+
+for GMM, Kn-NN and Parzen Window models it is possible to change the parameters that defined this models.
+GMM model are created using Scikit-learn library ([GMM model](https://scikit-learn.org/stable/modules/generated/sklearn.mixture.GaussianMixture.html))
+
+#### Some examples:
+
+- **Kn-NN** :
+  ```python
+  knn_model_params = {"k1": 1.5}
+  ```
+- **Parzen Window** :
+  ```python
+  parzen_window_params = {"h": 0.2}
+  ```
+- **GMM** :
+  ```python
+  gm_model_params = {
+        "random_state": 46,
+        "init_params": "random_from_data", # "k-means++" or "random" or "kmeans" or "random_from_data"
+        "max_iter": 90,
+        "n_components": 5,
+        "n_init": 60,
+  }
+  ```
+
+### MLP model (GNN and PNN)
+
+for MLP model it is possible to change the Neural Network architecture:
+
+- `dropout` parameter (applied at each layer).
+- the `hidden_layer` architecture (structured like a list with each element corresponding to a hidden layer with the number of neurons and the Activation function).
+- the `last_activation`: set the last activation function to be applied to the output of the model, if `lambda` is specified than it will be applied a sigmoid function with adaptive amplitude parameter _'lambda'_.
+
+#### Example:
 
 ```python
-{
-        "criterion": [nn.MSELoss],
-        "max_epochs": [50, 80],
-        "batch_size": [4, 8, 16],
-        "lr": [0.005, 0.01],
-        "module__n_layer": [2, 3],
-        "module__last_activation": ["lambda", nn.ReLU()],
-        "module__num_units": [80, 50, 10],
-        "module__activation": [nn.ReLU()],
-        "module__type_layer": ["increase", "decrease"],
-        "optimizer": [optim.Adam],
-        "module__dropout": [0.3, 0.5, 0.0],
+mlp_params = {
+        "dropout": 0.000,
+        "hidden_layer": [
+            [9, nn.Tanh()],
+            [20, nn.Sigmoid()],
+            [34, nn.Sigmoid()],
+            [26, nn.Tanh()],
+        ],
+        "last_activation": "lambda",  # None or lambda
     }
 ```
 
-- `module__last_activation` : set the last activation function to be applied to the model, if `lambda` is specified than it will be applied a sigmoid function with adaptive amplitude parameter 'lambda'.
-- `module__num_units` : set the number of neurons for the first layer of the model.
-- `module__activation` : set the activation function for all the layers.
-- `module__type_layer` : set how the layers should behave. With "increase" at each layer the number of neurons increases by a factor of 2. With "decrease" at each layer the number of neurons decrease by a factor of 2.
+It is also possible to change the **training parameters** (_number of epochs, batch size, learning rate, etc..._) and the **target parameters** (using the parameters from GMM or Parzen Window models)
 
-## Results:
+## Result
 
-- From all the experiments it's clear that GMM+MLP performe better than regular GMM.
-- The best results that we obtained were using 32 and 4 components of the GMM+MLP.
-- Using a bias version for generete the target for the MLP gives us worse results, particularly using kmeans initialization for the GMM init parameters.
+Preliminary experimental results showcased the potential of the GNN, the latter
+outperforming the GMM (i.e., the student has become the master) and the most popular non-parametric estimators. Likewise, the GNN compared quite favorably
+with the established ANN-based technique.
 
-### BEST RESULT:
+### Best Model for Multivariate PDF
 
-- With the gridsearch we obtained a perfect fit for the true PDF with a 32 components GMM+MLP:
+![multivariate](./result/best/MLP/100/GNN%20MULTIVARIATE%20810a0d8c/pdf_810a0d8c.png)
 
-![result1](./result_project/result/img/result-926_C32_R0.6.png)
+### Best Model for Multivariate PDF
 
-### Bias version of the BEST RESULT:
-
-- with the best model for the GMM+MLP than we switch to a bias version:
-
-![result2](./result_project/result/img/result-926_C32_R0.6_Biased.png)
-
-## Report:
-
-[Report LINK ](https://duccioo.github.io/Gaussian-Mixture-Neural-Network/content/AI__Project_Report.pdf)
-
-## To do:
-
-- [x] do the 4 experiments, changing the number of parameters and the parameters of the gridsarch
-- [x] check out the differences between the GMM biased and unbiased
-- [x] Implement the saving plots for the experiments
-- [x] check the correctness of the ISE score function
-- [x] maybe implement some options to pass with the command line
-- [x] maybe implement a gridsearch also for the GMM algorithm
-- [x] implement a function to plot only the differences between the biased and unbiased versions
+![exponential](./result/best/MLP/200/GNN%20EXP%206b41f25c/pdf_6b41f25c.png)
 
 ## Authors
 
-- [@AparnaPindali](https://github.com/AparnaPindali)
+- [Edmondo Trentin](https://www3.diism.unisi.it/~trentin/HomePage.html)
 - [@duccioo](https://github.com/Duccioo)
 
 ## License

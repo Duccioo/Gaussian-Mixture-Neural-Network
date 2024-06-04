@@ -337,6 +337,87 @@ def save_plot():
     pass
 
 
+def check_model_name(name: list = ""):
+    """
+    This function takes a model name as input and returns the official names of the model and its target.
+
+    Parameters:
+    name (str): The name of the model. It can be in any case and may contain extra spaces.
+
+    Returns:
+    tuple: A tuple containing two strings. The first string is the official name of the model, and the second string is the official name of the target. If the model name is not found, it prints "model name not found" and returns an empty tuple.
+
+    Examples:
+    >>> check_model_name("parzen window neural network")
+    ('PNN', 'PARZEN')
+    >>> check_model_name("Gaussian Mixture Neural Network")
+    ('GNN', 'GMM')
+    >>> check_model_name("GMM")
+    ('GMM', '')
+    >>> check_model_name("KNN")
+    ('KNN', '')
+    >>> check_model_name("Parzen Window")
+    ('Parzen Window', '')
+    >>> check_model_name("Unknown Model")
+    model name not found
+    ()
+    """
+    name = name.lower()
+    name = name.replace("  ", " ")
+
+    official_model_name = ""
+    official_target_name = ""
+
+    pnn_allow_name: list = [
+        "parzen window neural netowrk",
+        "parzen windows neural netowrk",
+        "pnn",
+        "parzen window + nn",
+        "parzen windows + nn",
+    ]
+
+    gnn_allow_name: list = [
+        "gaussian mixture neural network",
+        "gnn",
+        "gaussian mixture + nn",
+        "gmm + nn",
+        "gmm+nn",
+    ]
+
+    parzen_allow_name: list = [
+        "parzen window",
+        "parzen windows",
+        "parzen base",
+        "parzen",
+    ]
+
+    gmm_allow_name: list = ["gmm", "gaussian mixture", "gaussian mixture model"]
+
+    knn_allow_name: list = ["knn", "k nearest neighbors"]
+
+    if name in pnn_allow_name:
+        official_model_name = "PNN"
+        official_target_name = "PARZEN"
+
+    elif name in gnn_allow_name:
+        official_model_name = "GNN"
+        official_target_name = "GMM"
+
+    elif name in gmm_allow_name:
+        official_model_name = "GMM"
+
+    elif name in knn_allow_name:
+        official_model_name = "KNN"
+
+    elif name in parzen_allow_name:
+        official_model_name = "Parzen Window"
+
+    else:
+        print("model name not found")
+
+    return official_model_name, official_target_name
+
+
 if __name__ == "__main__":
     absolute_path = os.path.dirname(__file__)
     relative_path = "prova"

@@ -1,3 +1,4 @@
+import os
 import optuna
 
 import torch
@@ -5,18 +6,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from sklearn.metrics import r2_score
 from sklearn.mixture import GaussianMixture
 
-
-import os
 
 # ---
 from model.nn_model import AdaptiveSigmoid
 from utils.data_manager import PDF
 from model.gm_model import gen_target_with_gm_parallel
 from model.parzen_model import ParzenWindow_Model, gen_target_with_parzen_parallel
-from utils.utils import generate_unique_id, set_seed
+from utils.utils import set_seed
 from utils.metrics import calculate_metrics
 
 
@@ -123,7 +121,7 @@ def objective_MLP(
         loss_name = trial.suggest_categorical("loss", params["loss"])
     else:
         loss_name = params["loss"]
-        
+
     loss_type = getattr(F, loss_name)
 
     batch_size = trial.suggest_int("batch_size", params["batch_size"][0], params["batch_size"][1], step=2)

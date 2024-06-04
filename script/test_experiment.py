@@ -1,5 +1,7 @@
 import argparse
 import operator
+import numpy as np
+
 
 import torch
 import torch.nn as nn
@@ -11,14 +13,12 @@ import matplotlib.pyplot as plt
 
 from rich.progress import track
 
-import numpy as np
-
 # ---
 from utils.data_manager import PDF
 from model.nn_model import NeuralNetworkModular
 from model.gm_model import gen_target_with_gm_parallel
 from utils.utils import set_seed
-from training import training, evaluation
+from script.training_MLP import training, evaluation
 
 
 def reset_all_weights(model: nn.Module) -> None:
@@ -116,9 +116,7 @@ if __name__ == "__main__":
     pdf.generate_test()
 
     gm_model = GaussianMixture(**gmm_target_params)
-    _, target_y = gen_target_with_gm_parallel(
-        gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True
-    )
+    _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=True)
 
     model = NeuralNetworkModular(
         dropout=mlp_params["dropout"],
@@ -150,8 +148,8 @@ if __name__ == "__main__":
         metrics["r2"],
     )
 
-    # experiement 1:
-    # - cambiare il nunmero di componenti GMM, tenendo fermo la rete MLP e vedere comme cambia l'r2 e kl
+    # experiment 1:
+    # - change the number of GMM components, keeping the MLP network fixed and see how it changes the R2 and KL
 
     metrics_changed_1 = []
     start_components = gmm_target_params["n_components"]
@@ -164,9 +162,7 @@ if __name__ == "__main__":
         print("generating target with GMM")
         gmm_target_params["n_components"] = c
         gm_model = GaussianMixture(**gmm_target_params)
-        _, target_y = gen_target_with_gm_parallel(
-            gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=False
-        )
+        _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=False)
 
         set_seed(dataset_params["seed"])
 
@@ -176,9 +172,7 @@ if __name__ == "__main__":
             last_activation=mlp_params["last_activation"],
         )
 
-        # reset_all_weights(model_1)
-
-        # Reset dei pesi
+        # weight reset
         model_1.load_state_dict(torch.load("model_inizialization.pth"))
 
         training(
@@ -209,7 +203,7 @@ if __name__ == "__main__":
     # kl_values = [1 if x > 2 else x for x in kl_values]
 
     print(
-        "------- IL VALORE MIGLIORE DI R2 E' ",
+        "------- BEST R2 ::: ",
         np.max(r2_values),
         f"CON {components[np.argmax(r2_values)]} numero di componenti",
     )
@@ -231,9 +225,7 @@ if __name__ == "__main__":
     plt.ylim(-0.5, 2)
 
     # Mostrare il grafico
-    plt.savefig(
-        f"changing_components_best_{pdf.name}_{dataset_params['n_samples']}.png"
-    )
+    plt.savefig(f"changing_components_best_{pdf.name}_{dataset_params['n_samples']}.png")
     plt.show()
     plt.close(f1)
 
@@ -243,9 +235,7 @@ if __name__ == "__main__":
     neurons = range(1, 200)
     gmm_target_params["n_components"] = start_components
     gm_model = GaussianMixture(**gmm_target_params)
-    _, target_y = gen_target_with_gm_parallel(
-        gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=False
-    )
+    _, target_y = gen_target_with_gm_parallel(gm_model, X=pdf.training_X, n_jobs=-1, progress_bar=False)
 
     progress_bar = track(neurons, description="Experiment 2")
 
@@ -290,7 +280,7 @@ if __name__ == "__main__":
     # kl_values = [1 if x > 2 else x for x in kl_values]
 
     print(
-        "------- IL VALORE MIGLIORE DI R2 E' ",
+        "------- Best R2 ::: ",
         np.max(r2_values),
         f"CON {neurons[np.argmax(r2_values)]} numero di neuroni",
     )

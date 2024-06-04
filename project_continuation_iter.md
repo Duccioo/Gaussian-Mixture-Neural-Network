@@ -1,6 +1,6 @@
 ## What's New
 
-1. More model comparisons: between GMM, Parzen Window (and Kn-NN?)
+1. More model comparisons: between GMM, Parzen Window, Kn-NN
 
    - yep. Comparison w.r.t. kn-NN would be a plus. You can stick with standard
      PW and kn-NN (that is, h1 = 1 and k1 = 1, respectively).
@@ -9,12 +9,12 @@
 
    - yep. Comparisons in terms of both graphical and quantitative results.
 
-3. Data on multiple dimensions (2 and 3)
+<!-- 3. Data on multiple dimensions (2 and 3)
 
    - I suggest you setup a script for re-running gthe experiments on
      multivariate data for d -= 1 to (say) 4 or 5. This will allow us to plot a
      curve of the performance as a function of the dimensionality w.r.t. some
-     established tehcniques.
+     established tehcniques. -->
 
 4. Vary the number of training data (100, 1000, 10'000)
 
@@ -39,10 +39,6 @@
 
     - Multimodal:
       - Combining Logistic or Fischer Tippett PDFs (start with 3)
-
-  - More Dimensions:
-
-    - maybe just add a command option
 
   - More training data (already implemented):
     - add a command option to set up the number of training samples
@@ -149,8 +145,3 @@ and 10), just focus on the final model MLP + GMM."
 - Segnarsi gli esperimenti più interessanti e inviargli al massimo 1/2 immagini al prof ogni volta che c'è qualcosa
 
 - fare l'optuna dei parametri della gmm
-
-# Update 4 (marzo 2024):
-- Allora sono 2 le pdf da studiare:
-  - la multivariata
-  - l'esponenziale già fatta nel progettino
