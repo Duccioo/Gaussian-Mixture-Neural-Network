@@ -122,7 +122,7 @@ This command run the training on the KNN (Kn-NN) on the Multivariate PDF with 30
 
 </details>
 
-## Change Models Parameters (optionally)
+## Change Models Parameters (optional)
 
 It is possible to change the parameters of each model (statistical or Neural Network) by entering the specific file and modifying the python dictionaries in the **`__main__ `** part of the file.
 
