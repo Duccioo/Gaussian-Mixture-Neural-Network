@@ -2,7 +2,6 @@
 
 **This folder contains the results of the initial project which developed the GNN concept applied only to exponential PDF**
 
-
 ## Summary of the Project:
 
 <details>
@@ -166,17 +165,17 @@ By default:
 
 - With the gridsearch we obtained a perfect fit for the true PDF with a 32 components GMM+MLP:
 
-![result1](./result_project/result/img/result-926_C32_R0.6.png)
+![result1](./result/img/result-926_C32_R0.6.png)
 
 ### Bias version of the BEST RESULT:
 
 - with the best model for the GMM+MLP than we switch to a bias version:
 
-![result2](./result_project/result/img/result-926_C32_R0.6_Biased.png)
+![result2](./result/img/result-926_C32_R0.6_Biased.png)
 
 ## Report:
 
-[Report LINK ](https://duccioo.github.io/Gaussian-Mixture-Neural-Network/content/AI__Project_Report.pdf)
+[Report LINK ](https://duccioo.github.io/Gaussian-Mixture-Neural-Network/project/content/AI__Project_Report.pdf)
 
 ## To do:
 
