@@ -187,7 +187,7 @@ with the established ANN-based technique.
 
 ![multivariate](./result/best/MLP/100/GNN%20MULTIVARIATE%20810a0d8c/pdf_810a0d8c.png)
 
-### Best Model for Multivariate PDF
+### Best Model for Exponential PDF
 
 ![exponential](./result/best/MLP/200/GNN%20EXP%206b41f25c/pdf_6b41f25c.png)
 
