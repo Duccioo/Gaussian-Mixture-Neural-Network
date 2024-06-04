@@ -65,7 +65,7 @@ In order to run all the script you need to run the following:
 
 ## Run Locally
 
- <h3>  1. Run GNN or PNN models </h3>
+ <h3>  A) Run GNN or PNN models </h3>
 
 On the repo folder:
 
@@ -93,7 +93,7 @@ This command run the training on the PNN (Parzen Neural Network) on the Multivar
 
 <details>
 
-<summary>  <h3> 2. Run Statistical models </h3> </summary>
+<summary>  <h3> B) Run Statistical models </h3> </summary>
 
 On the repo folder:
 
