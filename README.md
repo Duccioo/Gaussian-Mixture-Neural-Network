@@ -75,8 +75,8 @@ python script/main_MLP.py
 
 You can also specify some additional arguments:
 
-- `--pdf <str> s` : select the PDF type (default: exponential PDF with rate = 0.6). Other possibility is `multivariate` to select a multivariate PDF, otherwise you can specify with your prefer parameters.
-- `--model <str> s` : select the model type, possibilities = ['GNN', 'PNN' ] (default: GNN)
+- `--pdf <str s>` : select the PDF type (default: exponential PDF with rate = 0.6). Other possibility is `multivariate` to select a multivariate PDF, otherwise you can specify with your prefer parameters.
+- `--model <str s>` : select the model type, possibilities = ['GNN', 'PNN' ] (default: GNN)
 
 - `--jobs <int n>`: specify the number of threads used to create the target samples for the MLP (default: 2)
 - `--samples <int n>`: number of samples used for training (default: 100)
@@ -103,8 +103,8 @@ python script/main_STATISTIC.py
 
 You can also specify some additional arguments:
 
-- `--pdf <str> s` : select the PDF type (default: exponential PDF with rate = 0.6). Other possibility is `multivariate` to select a multivariate PDF, otherwise you can specify with your prefer parameters.
-- `--model <str> s` : select the model type, possibilities = ['KNN', 'Parzen', 'GMM' ] (default: GMM)
+- `--pdf <str s>` : select the PDF type (default: exponential PDF with rate = 0.6). Other possibility is `multivariate` to select a multivariate PDF, otherwise you can specify with your prefer parameters.
+- `--model <str s> ` : select the model type, possibilities = ['KNN', 'Parzen', 'GMM' ] (default: GMM)
 
 - `--samples <int n>`: number of samples used for training (default: 100)
 - `--show`: toggle used to show the predicted PDF (default: not show the graph)
