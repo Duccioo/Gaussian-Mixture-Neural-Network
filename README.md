@@ -65,8 +65,7 @@ In order to run all the script you need to run the following:
 
 ## Run Locally
 
-<details>
-<summary>  <h3>  1. Run GNN or PNN models </h3> </summary>
+ <h3>  1. Run GNN or PNN models </h3>
 
 On the repo folder:
 
@@ -91,8 +90,6 @@ You can also specify some additional arguments:
 ```
 
 This command run the training on the PNN (Parzen Neural Network) on the Multivariate PDF with 150 samples used for the training, and at the end of training show the predicted PDF on the screen
-
-</details>
 
 <details>
 
@@ -124,7 +121,10 @@ This command run the training on the KNN (Kn-NN) on the Multivariate PDF with 30
 
 ## Change Models Parameters (optional)
 
+<details>
+<summary>
 It is possible to change the parameters of each model (statistical or Neural Network) by entering the specific file and modifying the python dictionaries in the **`__main__ `** part of the file.
+ </summary>
 
 ### Statistical model
 
@@ -176,6 +176,8 @@ mlp_params = {
 ```
 
 It is also possible to change the **training parameters** (_number of epochs, batch size, learning rate, etc..._) and the **target parameters** (using the parameters from GMM or Parzen Window models)
+
+</details>
 
 ## Result
 
