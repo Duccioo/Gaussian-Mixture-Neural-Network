@@ -179,6 +179,27 @@ It is also possible to change the **training parameters** (_number of epochs, ba
 
 </details>
 
+## Find the Best Parameters
+
+In this project, we leveraged the Optuna library to perform hyperparameter optimization for our neural network models and the statistical modles. Optuna is an automatic hyperparameter optimization software framework, particularly designed for machine learning. It allows for an efficient search of hyperparameters, which can significantly enhance the performance of machine learning models.
+The technique used for hyperparameter search is divided into 2 parts, the sampling of hyperparameters using **"TPESampler"** _(Tree-Structured Parzen Estimator)_ and the pruning of bad models using **"SuccessiveHalvingPruner"** _(Asynchronous Successive Halving)_, which are the algorithms default of this Optuna library.
+
+There are 2 files for hyperparameter search:
+
+1. `optuna_mlp.py` takes care of finding the best architectures and parameters for neural network models
+2. `optuna_statistic.py` deals with finding the parameters of statistical models.
+
+In each of the files you can modify the parameters for searching within the dictionary `params={}`
+
+You can also specify other parameters from the command line:
+
+- `--dataset` (multivariate or exp)
+- `--objective` ([gmm, parzen, knn] for statistical models) ([GMM, PARZEN] for neural models)
+- `--samples`
+- `--trials` (How many optuna trials to do before the end of the experiment)
+
+There is also a further file, `optuna_plotting.py`, relating to plotting various information and correlations between the R2 score and the various parameters of the experiments with optuna.
+
 ## Result
 
 Preliminary experimental results showcased the potential of the GNN, the latter

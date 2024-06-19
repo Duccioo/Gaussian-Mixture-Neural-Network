@@ -73,7 +73,7 @@ def objective_gmm(trial: optuna.Trial, params):
     if isinstance(params["n_components"], (list, tuple)):
         if params["n_components"][1] > n_samples:
             params["n_components"][1] = n_samples
-            
+
         n_components = trial.suggest_int("n_components", params["n_components"][0], params["n_components"][1])
     else:
         n_components = params["n_components"]
@@ -196,11 +196,11 @@ if __name__ == "__main__":
         # OBJECTIVE
         "objective_name": args.objective,  # knn, gmm, parzen
         "n_trials": args.trials,
-        "save_database": False,  # save the optuna database
+        "save_database": True,  # save the optuna database
     }
 
     # optuna.logging.get_logger("optuna")
-    study_name = f"{params['objective_name']} {params['dataset_type']} {params['n_samples']} 2"   # Unique identifier of the study.
+    study_name = f"{params['objective_name']} {params['dataset_type']} {params['n_samples']} 2"  # Unique identifier of the study.
     storage_name = f"db02-statistic_{params['n_samples']}_{params['dataset_type']}.db"
 
     db_folder = "optuna_database"

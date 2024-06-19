@@ -18,7 +18,7 @@ def arg_parsing():
     # command line parsing
     parser = argparse.ArgumentParser(description="Project for AI Exam")
     parser.add_argument("--dataset", type=str, default="multivariate")  # multivariate or exp
-    parser.add_argument("--objective", type=str, default="objective_parzen")  # knn, parzen, gmm
+    parser.add_argument("--objective", type=str, default="PARZEN")  # PARZEN or GMM (target)
     parser.add_argument("--jobs", type=int, default=2)
     parser.add_argument("--samples", type=int, default=100)
     parser.add_argument("--trials", type=int, default=500)
@@ -28,7 +28,7 @@ def arg_parsing():
 
 
 def start_optuna_mlp():
-    
+
     args = arg_parsing()
 
     device = "cpu"
@@ -58,9 +58,9 @@ def start_optuna_mlp():
         "dataset_type": args.dataset,  # multivariate or exp
         "n_samples": args.samples,
         "seed": (0, 100),  # seed che influisce sui pesi della MLP
-        "target_type": "PARZEN",  # GMM or PARZEN
+        "target_type": args.objective,  # GMM or PARZEN
         "pruning": False,  # use pruning if True
-        "trials": 400,
+        "trials": args.trials,
         "save_database": True,  # save study in database
     }
 
